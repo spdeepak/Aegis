@@ -49,7 +49,7 @@ func NewService(query repository.Querier, twoFAService twoFA.Service, tokenServi
 func (s *service) Signup(ctx *gin.Context, user api.UserSignup) (api.SignUpWith2FAResponse, error) {
 	hashedPassword, err := hashPassword(user.Password)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to encrypt password", slog.Any("error", err))
+		slog.ErrorContext(ctx, "Failed to encrypt password", "error", err)
 		return api.SignUpWith2FAResponse{}, err
 	}
 	email := string(user.Email)

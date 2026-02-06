@@ -197,3 +197,27 @@ func (a *authPolicy) evalAnyOf(userRoles []string, userPerms []string, isSelf bo
 	// None matched
 	return false
 }
+
+func (a *authPolicy) evalAllOf(userRoles []string, userPerms []string, isSelf bool) bool {
+	// Check self requirement
+	if a.Self && !isSelf {
+		return false
+	}
+
+	// Check all required roles
+	if a.AllOf.Roles != nil && len(a.AllOf.Roles) > 0 {
+		if !util.HasAll(a.AllOf.Roles, userRoles) {
+			return false
+		}
+	}
+
+	// Check all required permissions
+	if a.AllOf.Permissions != nil && len(a.AllOf.Permissions) > 0 {
+		if !util.HasAll(a.AllOf.Permissions, userPerms) {
+			return false
+		}
+	}
+
+	// All checks passed
+	return true
+}

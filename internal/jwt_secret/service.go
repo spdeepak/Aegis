@@ -23,26 +23,25 @@ func GetOrCreateSecret(token config.Token, storage Storage) []byte {
 		if token.MasterKey != "" {
 			secret, err := Decrypt(base64EncodedEncryptedSecret, token.MasterKey)
 			if err != nil {
-				slog.Error("Failed to decrypt JWT secret from DB", slog.Any("error", err))
+				slog.Error("Failed to decrypt JWT secret from DB", "error", err)
 				os.Exit(1)
 			}
 			return secret
-		} else {
-			slog.Error("JWT_MASTER_KEY not found to decrypt secret key")
-			os.Exit(1)
 		}
+		slog.Error("JWT_MASTER_KEY not found to decrypt secret key")
+		os.Exit(1)
 	}
 
 	if token.MasterKey != "" {
 		secret := generateJWTSecret()
 		base64EncodedEncryptedSecret, err = Encrypt(secret, token.MasterKey)
 		if err != nil {
-			slog.Error("Failed to encrypt generated JWT secret and encode it to base64", slog.Any("error", err))
+			slog.Error("Failed to encrypt generated JWT secret and encode it to base64", "error", err)
 			os.Exit(1)
 		}
 		err = storage.saveDefaultSecret(context.Background(), base64EncodedEncryptedSecret)
 		if err != nil {
-			slog.Error("Failed to save encrypted generated JWT secret to DB", slog.Any("error", err))
+			slog.Error("Failed to save encrypted generated JWT secret to DB", "error", err)
 			os.Exit(1)
 		}
 		return []byte(secret)
@@ -63,7 +62,7 @@ func generateJWTSecret() string {
 	bytes := make([]byte, 32)
 	_, err := rand.Read(bytes)
 	if err != nil {
-		slog.Error("JWT_TOKEN_SECRET is not set. Failed to generate default JWT secret", slog.Any("error", err))
+		slog.Error("JWT_TOKEN_SECRET is not set. Failed to generate default JWT secret", "error", err)
 	}
 	return base64.URLEncoding.EncodeToString(bytes)
 }

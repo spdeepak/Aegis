@@ -38,7 +38,7 @@ func main() {
 
 	err := db.RunMigrations(cfg.Postgres)
 	if err != nil {
-		slog.Error("Failed to run migrations", slog.Any("error", err))
+		slog.Error("Failed to run migrations", "error", err)
 	}
 	dbConnection := db.Connect(cfg.Postgres)
 
@@ -69,7 +69,7 @@ func main() {
 
 	swagger, err := api.GetSwagger()
 	if err != nil {
-		slog.Error(fmt.Sprintf("Error loading swagger spec\n: %v", os.Stderr), slog.Any("error", err))
+		slog.Error(fmt.Sprintf("Error loading swagger spec\n: %v", os.Stderr), "error", err)
 		os.Exit(1)
 	}
 	swagger.Servers = nil
