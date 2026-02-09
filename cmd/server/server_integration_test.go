@@ -26,21 +26,16 @@ import (
 	"github.com/spdeepak/go-jwt-server/internal/error"
 	"github.com/spdeepak/go-jwt-server/internal/logging"
 	"github.com/spdeepak/go-jwt-server/internal/permissions"
-	permissionsRepo "github.com/spdeepak/go-jwt-server/internal/permissions/repository"
 	"github.com/spdeepak/go-jwt-server/internal/roles"
-	roleRepo "github.com/spdeepak/go-jwt-server/internal/roles/repository"
 	"github.com/spdeepak/go-jwt-server/internal/tokens"
-	tokenRepo "github.com/spdeepak/go-jwt-server/internal/tokens/repository"
 	"github.com/spdeepak/go-jwt-server/internal/twoFA"
-	twoFARepo "github.com/spdeepak/go-jwt-server/internal/twoFA/repository"
 	"github.com/spdeepak/go-jwt-server/internal/users"
-	usersRepo "github.com/spdeepak/go-jwt-server/internal/users/repository"
 	"github.com/spdeepak/go-jwt-server/middleware"
 )
 
-var roleQuery roleRepo.Querier
-var userQuery usersRepo.Querier
-var permissionQuery permissionsRepo.Querier
+var roleQuery roles.Querier
+var userQuery users.Querier
+var permissionQuery permissions.Querier
 var router *gin.Engine
 var dbConfig = config.PostgresConfig{
 	Host:              "localhost",
@@ -63,15 +58,15 @@ var dbConfig = config.PostgresConfig{
 func TestMain(m *testing.M) {
 	slog.SetDefault(slog.New(logging.NewDefaultHandler()))
 	dbConnection := db.Connect(dbConfig)
-	twoFAQuery := twoFARepo.New(dbConnection)
+	twoFAQuery := twoFA.New(dbConnection)
 	twoFaService := twoFA.NewService("go-jwt-server", twoFAQuery)
-	tokenQuery := tokenRepo.New(dbConnection)
+	tokenQuery := tokens.New(dbConnection)
 	tokenService := tokens.NewService(tokenQuery, []byte("JWT_$€Cr€t"), "test-issuer")
-	userQuery = usersRepo.New(dbConnection)
+	userQuery = users.New(dbConnection)
 	userService := users.NewService(userQuery, twoFaService, tokenService)
-	roleQuery = roleRepo.New(dbConnection)
+	roleQuery = roles.New(dbConnection)
 	rolesService := roles.NewService(roleQuery)
-	permissionQuery = permissionsRepo.New(dbConnection)
+	permissionQuery = permissions.New(dbConnection)
 	permissionService := permissions.NewService(permissionQuery)
 	adminService := users.NewAdminService(userQuery)
 	//Setup router
@@ -1642,7 +1637,7 @@ func removeRolesFromUser(t *testing.T, role api.RoleResponse, loginRes api.Login
 	assert.NotEqualValues(t, user.PermissionNames, updatedUser.PermissionNames)
 }
 
-func lockUser(t *testing.T, err error, user usersRepo.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
+func lockUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
 	//Lock endpoint
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%s/lock", user.UserID.String()), nil)
 	assert.NoError(t, err)
@@ -1656,7 +1651,7 @@ func lockUser(t *testing.T, err error, user usersRepo.GetEntireUserByEmailRow, l
 	assert.Empty(t, recorder.Body.String())
 }
 
-func unlockUser(t *testing.T, err error, user usersRepo.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
+func unlockUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
 	//Lock endpoint
 	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/users/%s/lock", user.UserID.String()), nil)
 	assert.NoError(t, err)
@@ -1670,7 +1665,7 @@ func unlockUser(t *testing.T, err error, user usersRepo.GetEntireUserByEmailRow,
 	assert.Empty(t, recorder.Body.String())
 }
 
-func disableUser(t *testing.T, err error, user usersRepo.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
+func disableUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
 	//Disable endpoint
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%s/disable", user.UserID.String()), nil)
 	assert.NoError(t, err)
@@ -1684,7 +1679,7 @@ func disableUser(t *testing.T, err error, user usersRepo.GetEntireUserByEmailRow
 	assert.Empty(t, recorder.Body.String())
 }
 
-func enableUser(t *testing.T, err error, user usersRepo.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
+func enableUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
 	//Enable endpoint
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%s/enable", user.UserID.String()), nil)
 	assert.NoError(t, err)
