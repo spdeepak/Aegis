@@ -9,12 +9,11 @@ import (
 
 	"github.com/spdeepak/go-jwt-server/api"
 	"github.com/spdeepak/go-jwt-server/internal/error"
-	"github.com/spdeepak/go-jwt-server/internal/roles/repository"
 	"github.com/spdeepak/go-jwt-server/util"
 )
 
 type service struct {
-	storage repository.Querier
+	storage Querier
 }
 
 type Service interface {
@@ -28,14 +27,14 @@ type Service interface {
 	ListRolesAndItsPermissions(ctx context.Context) ([]api.RolesAndPermissionResponse, error)
 }
 
-func NewService(storage repository.Querier) Service {
+func NewService(storage Querier) Service {
 	return &service{
 		storage: storage,
 	}
 }
 
 func (s *service) CreateNewRole(ctx context.Context, params api.CreateNewRoleParams, email string, request api.CreateRole) (api.RoleResponse, error) {
-	createNewRole := repository.CreateNewRoleParams{
+	createNewRole := CreateNewRoleParams{
 		Name:        request.Name,
 		Description: request.Description,
 		CreatedBy:   email,
@@ -103,7 +102,7 @@ func (s *service) ListRoles(ctx context.Context) ([]api.RoleResponse, error) {
 }
 
 func (s *service) UpdateRoleById(ctx context.Context, id api.UuId, email string, params api.UpdateRoleByIdParams, req api.UpdateRole) (api.RoleResponse, error) {
-	updateRoleById := repository.UpdateRoleByIdParams{
+	updateRoleById := UpdateRoleByIdParams{
 		ID:        util.UUIDToPgtypeUUID(id),
 		UpdatedBy: email,
 	}
@@ -141,7 +140,7 @@ func (s *service) AssignPermissionToRole(ctx context.Context, roleId api.UuId, p
 	for index, id := range assignPermission.Ids {
 		permissionIds[index] = util.UUIDToPgtypeUUID(id)
 	}
-	assignPermissionsToRole := repository.AssignPermissionsParams{
+	assignPermissionsToRole := AssignPermissionsParams{
 		RoleID:       util.UUIDToPgtypeUUID(roleId),
 		PermissionID: permissionIds,
 		CreatedBy:    email,
@@ -153,7 +152,7 @@ func (s *service) AssignPermissionToRole(ctx context.Context, roleId api.UuId, p
 }
 
 func (s *service) UnassignPermissionFromRole(ctx context.Context, roleId api.RoleId, permissionId api.PermissionId) error {
-	UnassignPermissionFromRole := repository.UnAssignPermissionParams{
+	UnassignPermissionFromRole := UnAssignPermissionParams{
 		RoleID:       util.UUIDToPgtypeUUID(roleId),
 		PermissionID: util.UUIDToPgtypeUUID(permissionId),
 	}

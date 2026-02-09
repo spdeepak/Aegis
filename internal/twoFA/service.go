@@ -15,12 +15,11 @@ import (
 
 	"github.com/spdeepak/go-jwt-server/api"
 	"github.com/spdeepak/go-jwt-server/internal/error"
-	"github.com/spdeepak/go-jwt-server/internal/twoFA/repository"
 )
 
 type service struct {
 	appName string
-	query   repository.Querier
+	query   Querier
 }
 
 type Service interface {
@@ -29,7 +28,7 @@ type Service interface {
 	Remove2FA(ctx context.Context, userId pgtype.UUID, passcode string) error
 }
 
-func NewService(appName string, query repository.Querier) Service {
+func NewService(appName string, query Querier) Service {
 	return &service{
 		appName: appName,
 		query:   query,
@@ -95,7 +94,7 @@ func (s *service) Remove2FA(ctx context.Context, userId pgtype.UUID, passcode st
 		slog.ErrorContext(ctx, fmt.Sprintf("Invalid 2FA code for user: %s", userId), "error", err)
 		return httperror.New(httperror.InvalidTwoFA)
 	}
-	if err = s.query.Delete2FA(ctx, repository.Delete2FAParams{UserID: userId, Secret: twoFADetails.Secret}); err != nil {
+	if err = s.query.Delete2FA(ctx, Delete2FAParams{UserID: userId, Secret: twoFADetails.Secret}); err != nil {
 		slog.ErrorContext(ctx, fmt.Sprintf("Failed to delete 2FA setup for user: %s", userId), "error", err)
 		return err
 	}

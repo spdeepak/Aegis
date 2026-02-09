@@ -13,16 +13,15 @@ import (
 
 	"github.com/spdeepak/go-jwt-server/api"
 	"github.com/spdeepak/go-jwt-server/internal/error"
-	"github.com/spdeepak/go-jwt-server/internal/tokens/repository"
 )
 
 func TestService_GenerateTokenPair(t *testing.T) {
 	secret := "JWT_$€CR€T"
-	query := repository.NewMockQuerier(t)
+	query := NewMockQuerier(t)
 	query.On("SaveToken", mock.Anything, mock.Anything).Return(nil)
 	tokenService := NewService(query, []byte(secret), "")
 
-	user := repository.User{
+	user := User{
 		Email:     "first.last@example.com",
 		FirstName: "First",
 		LastName:  "Last",
@@ -50,11 +49,11 @@ func TestService_GenerateTokenPair(t *testing.T) {
 
 func TestService_ValidateRefreshToken_OK(t *testing.T) {
 	secret := "JWT_$€CR€T"
-	query := repository.NewMockQuerier(t)
+	query := NewMockQuerier(t)
 	query.On("SaveToken", mock.Anything, mock.Anything).Return(nil)
 	tokenService := NewService(query, []byte(secret), "")
 
-	user := repository.User{
+	user := User{
 		Email:     "first.last@example.com",
 		FirstName: "First",
 		LastName:  "Last",
@@ -78,7 +77,7 @@ func TestService_ValidateRefreshToken_OK(t *testing.T) {
 	assert.NotEmpty(t, response.AccessToken)
 	assert.NotEmpty(t, response.RefreshToken)
 
-	refreshValidParams := repository.IsRefreshValidParams{
+	refreshValidParams := IsRefreshValidParams{
 		RefreshToken: hash(response.RefreshToken),
 		IpAddress:    "192.168.1.100",
 		UserAgent:    "test",
@@ -93,11 +92,11 @@ func TestService_ValidateRefreshToken_OK(t *testing.T) {
 
 func TestService_ValidateRefreshToken_NOK_AlreadyRevoked(t *testing.T) {
 	secret := "JWT_$€CR€T"
-	query := repository.NewMockQuerier(t)
+	query := NewMockQuerier(t)
 	query.On("SaveToken", mock.Anything, mock.Anything).Return(nil)
 	tokenService := NewService(query, []byte(secret), "")
 
-	user := repository.User{
+	user := User{
 		Email:     "first.last@example.com",
 		FirstName: "First",
 		LastName:  "Last",
@@ -121,7 +120,7 @@ func TestService_ValidateRefreshToken_NOK_AlreadyRevoked(t *testing.T) {
 	assert.NotEmpty(t, response.AccessToken)
 	assert.NotEmpty(t, response.RefreshToken)
 
-	refreshValidParams := repository.IsRefreshValidParams{
+	refreshValidParams := IsRefreshValidParams{
 		RefreshToken: hash(response.RefreshToken),
 		IpAddress:    "192.168.1.100",
 		UserAgent:    "test",
@@ -137,11 +136,11 @@ func TestService_ValidateRefreshToken_NOK_AlreadyRevoked(t *testing.T) {
 
 func TestService_ValidateRefreshToken_NOK(t *testing.T) {
 	secret := "JWT_$€CR€T"
-	query := repository.NewMockQuerier(t)
+	query := NewMockQuerier(t)
 	query.On("SaveToken", mock.Anything, mock.Anything).Return(nil)
 	tokenService := NewService(query, []byte(secret), "")
 
-	user := repository.User{
+	user := User{
 		Email:     "first.last@example.com",
 		FirstName: "First",
 		LastName:  "Last",
@@ -175,7 +174,7 @@ func TestService_ValidateRefreshToken_NOK(t *testing.T) {
 
 func TestService_RevokeAllTokens_OK(t *testing.T) {
 	secret := "JWT_$€CR€T"
-	query := repository.NewMockQuerier(t)
+	query := NewMockQuerier(t)
 	query.On("RevokeAllTokens", mock.Anything, "first.last@example.com").Return(nil)
 	service := NewService(query, []byte(secret), "")
 
@@ -187,7 +186,7 @@ func TestService_RevokeAllTokens_OK(t *testing.T) {
 
 func TestService_RevokeAllTokens_NOK(t *testing.T) {
 	secret := "JWT_$€CR€T"
-	query := repository.NewMockQuerier(t)
+	query := NewMockQuerier(t)
 	query.On("RevokeAllTokens", mock.Anything, "first.last@example.com").Return(errors.New("error"))
 	tokenService := NewService(query, []byte(secret), "")
 
@@ -202,11 +201,11 @@ func TestService_RevokeAllTokens_NOK(t *testing.T) {
 
 func TestService_RevokeRefreshToken_OK(t *testing.T) {
 	secret := "JWT_$€CR€T"
-	query := repository.NewMockQuerier(t)
+	query := NewMockQuerier(t)
 	query.On("SaveToken", mock.Anything, mock.Anything).Return(nil)
 	tokenService := NewService(query, []byte(secret), "")
 
-	user := repository.User{
+	user := User{
 		Email:     "first.last@example.com",
 		FirstName: "First",
 		LastName:  "Last",
@@ -239,11 +238,11 @@ func TestService_RevokeRefreshToken_OK(t *testing.T) {
 
 func TestService_RevokeRefreshToken_NOK_RefreshTokenInvalid(t *testing.T) {
 	secret := "JWT_$€CR€T"
-	query := repository.NewMockQuerier(t)
+	query := NewMockQuerier(t)
 	query.On("SaveToken", mock.Anything, mock.Anything).Return(nil)
 	tokenService := NewService(query, []byte(secret), "")
 
-	user := repository.User{
+	user := User{
 		Email:     "first.last@example.com",
 		FirstName: "First",
 		LastName:  "Last",
@@ -279,11 +278,11 @@ func TestService_RevokeRefreshToken_NOK_RefreshTokenInvalid(t *testing.T) {
 
 func TestService_RevokeRefreshToken_NOK_UnknownDBError(t *testing.T) {
 	secret := "JWT_$€CR€T"
-	query := repository.NewMockQuerier(t)
+	query := NewMockQuerier(t)
 	query.On("SaveToken", mock.Anything, mock.Anything).Return(nil)
 	tokenService := NewService(query, []byte(secret), "")
 
-	user := repository.User{
+	user := User{
 		Email:     "first.last@example.com",
 		FirstName: "First",
 		LastName:  "Last",
@@ -316,11 +315,11 @@ func TestService_RevokeRefreshToken_NOK_UnknownDBError(t *testing.T) {
 
 func TestService_RefreshAndInvalidateToken_OK(t *testing.T) {
 	secret := "JWT_$€CR€T"
-	query := repository.NewMockQuerier(t)
+	query := NewMockQuerier(t)
 	query.On("SaveToken", mock.Anything, mock.Anything).Return(nil)
 	tokenService := NewService(query, []byte(secret), "")
 
-	user := repository.User{
+	user := User{
 		Email:     "first.last@example.com",
 		FirstName: "First",
 		LastName:  "Last",
@@ -347,7 +346,7 @@ func TestService_RefreshAndInvalidateToken_OK(t *testing.T) {
 	hashedRefreshToken := hash(response.RefreshToken)
 	var newBearerToken string
 	var newRefreshToken string
-	query.On("RefreshAndInvalidateToken", ctx, mock.MatchedBy(func(params repository.RefreshAndInvalidateTokenParams) bool {
+	query.On("RefreshAndInvalidateToken", ctx, mock.MatchedBy(func(params RefreshAndInvalidateTokenParams) bool {
 		newBearerToken = params.NewToken
 		newRefreshToken = params.NewRefreshToken
 		return len(params.NewToken) > 0 &&
@@ -362,7 +361,7 @@ func TestService_RefreshAndInvalidateToken_OK(t *testing.T) {
 			params.OldRefreshToken == hashedRefreshToken
 	})).Return(nil)
 
-	tokenResponse, err := tokenService.RefreshAndInvalidateToken(ctx, "192.168.1.100", TokenParams{XLoginSource: "test", UserAgent: "Api Testing"}, api.Refresh{RefreshToken: response.RefreshToken}, repository.User{Email: "first.last@example.com"}, []string{}, []string{})
+	tokenResponse, err := tokenService.RefreshAndInvalidateToken(ctx, "192.168.1.100", TokenParams{XLoginSource: "test", UserAgent: "Api Testing"}, api.Refresh{RefreshToken: response.RefreshToken}, User{Email: "first.last@example.com"}, []string{}, []string{})
 	assert.NoError(t, err)
 	assert.NotNil(t, tokenResponse)
 	assert.NotEmpty(t, newBearerToken)
@@ -371,11 +370,11 @@ func TestService_RefreshAndInvalidateToken_OK(t *testing.T) {
 
 func TestService_RefreshAndInvalidateToken_NOK_InvalidationFailed(t *testing.T) {
 	secret := "JWT_$€CR€T"
-	query := repository.NewMockQuerier(t)
+	query := NewMockQuerier(t)
 	query.On("SaveToken", mock.Anything, mock.Anything).Return(nil)
 	tokenService := NewService(query, []byte(secret), "")
 
-	user := repository.User{
+	user := User{
 		Email:     "first.last@example.com",
 		FirstName: "First",
 		LastName:  "Last",
@@ -402,7 +401,7 @@ func TestService_RefreshAndInvalidateToken_NOK_InvalidationFailed(t *testing.T) 
 	hashedRefreshToken := hash(response.RefreshToken)
 	var newBearerToken string
 	var newRefreshToken string
-	query.On("RefreshAndInvalidateToken", ctx, mock.MatchedBy(func(params repository.RefreshAndInvalidateTokenParams) bool {
+	query.On("RefreshAndInvalidateToken", ctx, mock.MatchedBy(func(params RefreshAndInvalidateTokenParams) bool {
 		newBearerToken = params.NewToken
 		newRefreshToken = params.NewRefreshToken
 		return len(params.NewToken) > 0 &&
@@ -417,7 +416,7 @@ func TestService_RefreshAndInvalidateToken_NOK_InvalidationFailed(t *testing.T) 
 			params.OldRefreshToken == hashedRefreshToken
 	})).Return(errors.New("test error"))
 
-	tokenResponse, err := tokenService.RefreshAndInvalidateToken(ctx, "192.168.1.100", TokenParams{XLoginSource: "test", UserAgent: "Api Testing"}, api.Refresh{RefreshToken: response.RefreshToken}, repository.User{Email: "first.last@example.com"}, []string{}, []string{})
+	tokenResponse, err := tokenService.RefreshAndInvalidateToken(ctx, "192.168.1.100", TokenParams{XLoginSource: "test", UserAgent: "Api Testing"}, api.Refresh{RefreshToken: response.RefreshToken}, User{Email: "first.last@example.com"}, []string{}, []string{})
 	assert.Error(t, err)
 	var he httperror.HttpError
 	assert.True(t, errors.As(err, &he))
@@ -430,8 +429,8 @@ func TestService_RefreshAndInvalidateToken_NOK_InvalidationFailed(t *testing.T) 
 func TestService_ListActiveSessions_OK(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
-	query := repository.NewMockQuerier(t)
-	queryResponse := []repository.Token{
+	query := NewMockQuerier(t)
+	queryResponse := []Token{
 		{
 			CreatedBy:        "api-test",
 			IpAddress:        "192.168.1.100",
@@ -458,7 +457,7 @@ func TestService_ListActiveSessions_OK(t *testing.T) {
 func TestService_ListActiveSessions_NOK_DBQueryFail(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
-	query := repository.NewMockQuerier(t)
+	query := NewMockQuerier(t)
 	query.On("ListAllActiveSessions", ctx, "first.last@example.com").Return(nil, errors.New("errror"))
 	secret := "SOME_RANDOM_SECRET"
 	tokenService := NewService(query, []byte(secret), "")

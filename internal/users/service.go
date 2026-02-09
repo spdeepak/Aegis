@@ -15,15 +15,13 @@ import (
 	"github.com/spdeepak/go-jwt-server/api"
 	"github.com/spdeepak/go-jwt-server/internal/error"
 	"github.com/spdeepak/go-jwt-server/internal/tokens"
-	token "github.com/spdeepak/go-jwt-server/internal/tokens/repository"
 	"github.com/spdeepak/go-jwt-server/internal/twoFA"
-	"github.com/spdeepak/go-jwt-server/internal/users/repository"
 	"github.com/spdeepak/go-jwt-server/util"
 )
 
 type (
 	service struct {
-		query        repository.Querier
+		query        Querier
 		tokenService tokens.Service
 		twoFAService twoFA.Service
 	}
@@ -38,7 +36,7 @@ type (
 	}
 )
 
-func NewService(query repository.Querier, twoFAService twoFA.Service, tokenService tokens.Service) Service {
+func NewService(query Querier, twoFAService twoFA.Service, tokenService tokens.Service) Service {
 	return &service{
 		query:        query,
 		twoFAService: twoFAService,
@@ -54,7 +52,7 @@ func (s *service) Signup(ctx *gin.Context, user api.UserSignup) (api.SignUpWith2
 	}
 	email := string(user.Email)
 	if !user.TwoFAEnabled {
-		userSignup := repository.SignupParams{
+		userSignup := SignupParams{
 			Email:        email,
 			FirstName:    user.FirstName,
 			LastName:     user.LastName,
@@ -74,7 +72,7 @@ func (s *service) Signup(ctx *gin.Context, user api.UserSignup) (api.SignUpWith2
 	if err != nil {
 		return api.SignUpWith2FAResponse{}, err
 	}
-	userSignupWith2FA := repository.SignupWith2FAParams{
+	userSignupWith2FA := SignupWith2FAParams{
 		Secret:       user2FASetup.Secret,
 		Url:          user2FASetup.Url,
 		Email:        email,
@@ -114,7 +112,7 @@ func (s *service) Login(ctx *gin.Context, params api.LoginParams, login api.User
 	if user.Locked {
 		return api.LoginSuccessWithJWT{}, httperror.New(httperror.UserAccountLocked)
 	}
-	jwtUser := token.User{
+	jwtUser := tokens.User{
 		ID:        user.UserID,
 		Email:     user.Email,
 		FirstName: user.FirstName,
@@ -149,7 +147,7 @@ func (s *service) Login2FA(ctx *gin.Context, params api.Login2FAParams, userId u
 		return api.LoginSuccessWithJWT{}, httperror.New(httperror.UserAccountLocked)
 	}
 
-	jwtUser := token.User{
+	jwtUser := tokens.User{
 		ID:        user.ID,
 		Email:     user.Email,
 		FirstName: user.FirstName,
@@ -176,7 +174,7 @@ func (s *service) RefreshToken(ctx *gin.Context, params api.RefreshParams, refre
 	if err != nil {
 		return api.LoginSuccessWithJWT{}, httperror.NewWithMetadata(httperror.InvalidRefreshToken, "Invalid token claims")
 	}
-	jwtUser := token.User{
+	jwtUser := tokens.User{
 		ID:        user.UserID,
 		Email:     user.Email,
 		FirstName: user.FirstName,
@@ -210,7 +208,7 @@ func (s *service) AssignRolesToUser(ctx *gin.Context, userId api.UuId, params ap
 	for index, id := range assignRoleToUser.Roles {
 		rolesIds[index] = util.UUIDToPgtypeUUID(id)
 	}
-	assignRolesToUser := repository.AssignRolesToUserParams{
+	assignRolesToUser := AssignRolesToUserParams{
 		UserID:    util.UUIDToPgtypeUUID(userId),
 		RoleID:    rolesIds,
 		CreatedBy: email,
@@ -228,7 +226,7 @@ func (s *service) AssignRolesToUser(ctx *gin.Context, userId api.UuId, params ap
 }
 
 func (s *service) UnassignRolesOfUser(ctx *gin.Context, userId api.UuId, roleId api.RoleId, params api.RemoveRolesForUserParams) error {
-	unassignRolesToUser := repository.UnassignRolesToUserParams{
+	unassignRolesToUser := UnassignRolesToUserParams{
 		UserID: util.UUIDToPgtypeUUID(userId),
 		RoleID: util.UUIDToPgtypeUUID(roleId),
 	}

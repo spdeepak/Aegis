@@ -18,11 +18,10 @@ import (
 	"github.com/spdeepak/go-jwt-server/config"
 	"github.com/spdeepak/go-jwt-server/internal/db"
 	"github.com/spdeepak/go-jwt-server/internal/permissions"
-	permissionsRepo "github.com/spdeepak/go-jwt-server/internal/permissions/repository"
-	roleRepo "github.com/spdeepak/go-jwt-server/internal/roles/repository"
+	permissionsRepo "github.com/spdeepak/go-jwt-server/internal/permissions"
 )
 
-var roleStorage roleRepo.Querier
+var roleStorage Querier
 var permissionStorage permissionsRepo.Querier
 var dba *pgxpool.Pool
 var dbConfig = config.PostgresConfig{
@@ -45,7 +44,7 @@ var dbConfig = config.PostgresConfig{
 
 func TestMain(m *testing.M) {
 	dbConnection := db.Connect(dbConfig)
-	roleStorage = roleRepo.New(dbConnection)
+	roleStorage = New(dbConnection)
 	permissionStorage = permissionsRepo.New(dbConnection)
 	// Run all tests
 	truncateTables()

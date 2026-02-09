@@ -9,14 +9,13 @@ import (
 
 	"github.com/spdeepak/go-jwt-server/api"
 	"github.com/spdeepak/go-jwt-server/internal/db"
-	"github.com/spdeepak/go-jwt-server/internal/users/repository"
 	"github.com/spdeepak/go-jwt-server/util"
 )
 
 func TestAdminService_LockUserById_OK(t *testing.T) {
 	truncateTables()
 	dbConnection := db.Connect(dbConfig)
-	userQuery := repository.New(dbConnection)
+	userQuery := New(dbConnection)
 	admin_service := NewAdminService(userQuery)
 	signup_No2fa_OK(t)
 	email, err := userQuery.GetUserByEmail(context.Background(), "first.last@example.com")
@@ -36,7 +35,7 @@ func TestAdminService_LockUserById_OK(t *testing.T) {
 func TestAdminService_LockUserById_NOK(t *testing.T) {
 	truncateTables()
 	dbConnection := db.Connect(dbConfig)
-	userQuery := repository.New(dbConnection)
+	userQuery := New(dbConnection)
 	admin_service := NewAdminService(userQuery)
 	signup_No2fa_OK(t)
 	email, err := userQuery.GetUserByEmail(context.Background(), "first.last@example.com")
@@ -53,7 +52,7 @@ func TestAdminService_LockUserById_NOK(t *testing.T) {
 func TestAdminService_UnlockUserById_OK(t *testing.T) {
 	truncateTables()
 	dbConnection := db.Connect(dbConfig)
-	userQuery := repository.New(dbConnection)
+	userQuery := New(dbConnection)
 	admin_service := NewAdminService(userQuery)
 	signup_No2fa_OK(t)
 	email, err := userQuery.GetUserByEmail(context.Background(), "first.last@example.com")
@@ -74,7 +73,7 @@ func TestAdminService_UnlockUserById_OK(t *testing.T) {
 func TestAdminService_UnlockUserById_NOK(t *testing.T) {
 	truncateTables()
 	dbConnection := db.Connect(dbConfig)
-	userQuery := repository.New(dbConnection)
+	userQuery := New(dbConnection)
 	admin_service := NewAdminService(userQuery)
 	ctx := context.WithValue(context.Background(), "User-ID", uuid.New())
 	ctx = context.WithValue(ctx, "user-ip", "127.0.0.1")
@@ -83,7 +82,7 @@ func TestAdminService_UnlockUserById_NOK(t *testing.T) {
 	dbConnection.Close()
 }
 
-func lockUser(t *testing.T, ctx context.Context, err error, admin_service AdminService, users repository.User, userQuery *repository.Queries) {
+func lockUser(t *testing.T, ctx context.Context, err error, admin_service AdminService, users User, userQuery *Queries) {
 	err = admin_service.LockUserById(ctx, users.ID.Bytes, api.LockUserParams{UserAgent: "service-test"})
 	assert.NoError(t, err)
 	users, err = userQuery.GetUserByEmail(ctx, "first.last@example.com")
@@ -92,7 +91,7 @@ func lockUser(t *testing.T, ctx context.Context, err error, admin_service AdminS
 	assert.True(t, users.Locked)
 }
 
-func unlockUser(t *testing.T, err error, admin_service AdminService, users repository.User, userQuery *repository.Queries) {
+func unlockUser(t *testing.T, err error, admin_service AdminService, users User, userQuery *Queries) {
 	ctx := context.WithValue(context.Background(), "User-ID", uuid.New())
 	ctx = context.WithValue(ctx, "user-ip", "127.0.0.1")
 	err = admin_service.UnlockUserById(ctx, users.ID.Bytes, api.UnlockUserParams{UserAgent: "service-test"})
@@ -106,7 +105,7 @@ func unlockUser(t *testing.T, err error, admin_service AdminService, users repos
 func TestAdminService_DisableUserById_OK(t *testing.T) {
 	truncateTables()
 	dbConnection := db.Connect(dbConfig)
-	userQuery := repository.New(dbConnection)
+	userQuery := New(dbConnection)
 	admin_service := NewAdminService(userQuery)
 	signup_No2fa_OK(t)
 	email, err := userQuery.GetUserByEmail(context.Background(), "first.last@example.com")
@@ -126,7 +125,7 @@ func TestAdminService_DisableUserById_OK(t *testing.T) {
 func TestAdminService_DisableUserById_NOK(t *testing.T) {
 	truncateTables()
 	dbConnection := db.Connect(dbConfig)
-	userQuery := repository.New(dbConnection)
+	userQuery := New(dbConnection)
 	admin_service := NewAdminService(userQuery)
 	ctx := context.WithValue(context.Background(), "User-ID", uuid.New())
 	ctx = context.WithValue(ctx, "user-ip", "127.0.0.1")
@@ -138,7 +137,7 @@ func TestAdminService_DisableUserById_NOK(t *testing.T) {
 func TestAdminService_EnableUserById_OK(t *testing.T) {
 	truncateTables()
 	dbConnection := db.Connect(dbConfig)
-	userQuery := repository.New(dbConnection)
+	userQuery := New(dbConnection)
 	admin_service := NewAdminService(userQuery)
 	signup_No2fa_OK(t)
 	email, err := userQuery.GetUserByEmail(context.Background(), "first.last@example.com")
@@ -159,7 +158,7 @@ func TestAdminService_EnableUserById_OK(t *testing.T) {
 func TestAdminService_EnableUserById_NOK(t *testing.T) {
 	truncateTables()
 	dbConnection := db.Connect(dbConfig)
-	userQuery := repository.New(dbConnection)
+	userQuery := New(dbConnection)
 	admin_service := NewAdminService(userQuery)
 	ctx := context.WithValue(context.Background(), "User-ID", uuid.New())
 	ctx = context.WithValue(ctx, "user-ip", "127.0.0.1")
@@ -168,7 +167,7 @@ func TestAdminService_EnableUserById_NOK(t *testing.T) {
 	dbConnection.Close()
 }
 
-func disableUser(t *testing.T, err error, admin_service AdminService, users repository.User, userQuery *repository.Queries) {
+func disableUser(t *testing.T, err error, admin_service AdminService, users User, userQuery *Queries) {
 	ctx := context.WithValue(context.Background(), "User-ID", uuid.New())
 	ctx = context.WithValue(ctx, "user-ip", "127.0.0.1")
 	err = admin_service.DisableUserById(ctx, users.ID.Bytes, api.DisableUserParams{UserAgent: "service-test"})
@@ -179,7 +178,7 @@ func disableUser(t *testing.T, err error, admin_service AdminService, users repo
 	assert.True(t, users.Disabled)
 }
 
-func enableUser(t *testing.T, err error, admin_service AdminService, users repository.User, userQuery *repository.Queries) {
+func enableUser(t *testing.T, err error, admin_service AdminService, users User, userQuery *Queries) {
 	ctx := context.WithValue(context.Background(), "User-ID", uuid.New())
 	ctx = context.WithValue(ctx, "user-ip", "127.0.0.1")
 	err = admin_service.EnableUserById(ctx, users.ID.Bytes, api.EnableUserParams{UserAgent: "service-test"})

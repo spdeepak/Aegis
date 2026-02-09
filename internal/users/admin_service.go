@@ -9,13 +9,12 @@ import (
 
 	"github.com/spdeepak/go-jwt-server/api"
 	httperror "github.com/spdeepak/go-jwt-server/internal/error"
-	"github.com/spdeepak/go-jwt-server/internal/users/repository"
 	"github.com/spdeepak/go-jwt-server/util"
 )
 
 type (
 	adminService struct {
-		storage repository.Querier
+		storage Querier
 	}
 	AdminService interface {
 		GetListOfUsers(ctx context.Context, params api.GetListOfUsersParams) ([]api.UserDetails, error)
@@ -26,14 +25,14 @@ type (
 	}
 )
 
-func NewAdminService(storage repository.Querier) AdminService {
+func NewAdminService(storage Querier) AdminService {
 	return &adminService{
 		storage: storage,
 	}
 }
 
 func (a *adminService) GetListOfUsers(ctx context.Context, params api.GetListOfUsersParams) ([]api.UserDetails, error) {
-	repoParams := repository.SearchAndGetUserDetailsParams{}
+	repoParams := SearchAndGetUserDetailsParams{}
 	if params.FirstName != nil {
 		repoParams.FirstName = pgtype.Text{
 			String: *params.FirstName,
@@ -89,7 +88,7 @@ func (a *adminService) GetListOfUsers(ctx context.Context, params api.GetListOfU
 }
 
 func (a *adminService) LockUserById(ctx context.Context, id uuid.UUID, params api.LockUserParams) error {
-	userId, err := a.storage.LockUserById(ctx, repository.LockUserByIdParams{
+	userId, err := a.storage.LockUserById(ctx, LockUserByIdParams{
 		UserID:    util.UUIDToPgtypeUUID(id),
 		ActorID:   util.UUIDToPgtypeUUID(ctx.Value("User-ID").(uuid.UUID)),
 		IpAddress: ctx.Value("user-ip").(string),
@@ -104,7 +103,7 @@ func (a *adminService) LockUserById(ctx context.Context, id uuid.UUID, params ap
 }
 
 func (a *adminService) UnlockUserById(ctx context.Context, id uuid.UUID, params api.UnlockUserParams) error {
-	userId, err := a.storage.UnlockUserById(ctx, repository.UnlockUserByIdParams{
+	userId, err := a.storage.UnlockUserById(ctx, UnlockUserByIdParams{
 		UserID:    util.UUIDToPgtypeUUID(id),
 		ActorID:   util.UUIDToPgtypeUUID(ctx.Value("User-ID").(uuid.UUID)),
 		IpAddress: ctx.Value("user-ip").(string),
@@ -119,7 +118,7 @@ func (a *adminService) UnlockUserById(ctx context.Context, id uuid.UUID, params 
 }
 
 func (a *adminService) DisableUserById(ctx context.Context, id uuid.UUID, params api.DisableUserParams) error {
-	userId, err := a.storage.DisableUserById(ctx, repository.DisableUserByIdParams{
+	userId, err := a.storage.DisableUserById(ctx, DisableUserByIdParams{
 		UserID:    util.UUIDToPgtypeUUID(id),
 		ActorID:   util.UUIDToPgtypeUUID(ctx.Value("User-ID").(uuid.UUID)),
 		IpAddress: ctx.Value("user-ip").(string),
@@ -134,7 +133,7 @@ func (a *adminService) DisableUserById(ctx context.Context, id uuid.UUID, params
 }
 
 func (a *adminService) EnableUserById(ctx context.Context, id uuid.UUID, params api.EnableUserParams) error {
-	userId, err := a.storage.EnableUserById(ctx, repository.EnableUserByIdParams{
+	userId, err := a.storage.EnableUserById(ctx, EnableUserByIdParams{
 		UserID:    util.UUIDToPgtypeUUID(id),
 		ActorID:   util.UUIDToPgtypeUUID(ctx.Value("User-ID").(uuid.UUID)),
 		IpAddress: ctx.Value("user-ip").(string),

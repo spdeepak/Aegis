@@ -6,8 +6,8 @@ sql:
     engine: "postgresql"
     gen:
       go:
-        package: "repository"
-        out: "./internal/users/repository"
+        package: "users"
+        out: "./internal/users"
         output_files_suffix: ".gen.go"
         output_db_file_name: "db.gen.go"
         output_models_file_name: "models.gen.go"
@@ -26,8 +26,8 @@ sql:
     engine: "postgresql"
     gen:
       go:
-        package: "repository"
-        out: "./internal/jwt_secret/repository"
+        package: "jwt_secret"
+        out: "./internal/jwt_secret"
         output_files_suffix: ".gen.go"
         output_db_file_name: "db.gen.go"
         output_models_file_name: "models.gen.go"
@@ -46,8 +46,8 @@ sql:
     engine: "postgresql"
     gen:
       go:
-        package: "repository"
-        out: "./internal/tokens/repository"
+        package: "tokens"
+        out: "./internal/tokens"
         output_files_suffix: ".gen.go"
         output_db_file_name: "db.gen.go"
         output_models_file_name: "models.gen.go"
@@ -66,8 +66,8 @@ sql:
     engine: "postgresql"
     gen:
       go:
-        package: "repository"
-        out: "./internal/twoFA/repository"
+        package: "twoFA"
+        out: "./internal/twoFA"
         output_files_suffix: ".gen.go"
         output_db_file_name: "db.gen.go"
         output_models_file_name: "models.gen.go"
@@ -86,8 +86,8 @@ sql:
     engine: "postgresql"
     gen:
       go:
-        package: "repository"
-        out: "./internal/roles/repository"
+        package: "roles"
+        out: "./internal/roles"
         output_files_suffix: ".gen.go"
         output_db_file_name: "db.gen.go"
         output_models_file_name: "models.gen.go"
@@ -106,8 +106,8 @@ sql:
     engine: "postgresql"
     gen:
       go:
-        package: "repository"
-        out: "./internal/permissions/repository"
+        package: "permissions"
+        out: "./internal/permissions"
         output_files_suffix: ".gen.go"
         output_db_file_name: "db.gen.go"
         output_models_file_name: "models.gen.go"
