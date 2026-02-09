@@ -14,10 +14,9 @@ import (
 	"github.com/spdeepak/go-jwt-server/api"
 	"github.com/spdeepak/go-jwt-server/config"
 	"github.com/spdeepak/go-jwt-server/internal/db"
-	"github.com/spdeepak/go-jwt-server/internal/permissions/repository"
 )
 
-var permissionStorage repository.Querier
+var permissionStorage Querier
 var dbConfig = config.PostgresConfig{
 	Host:              "localhost",
 	Port:              "5432",
@@ -38,7 +37,7 @@ var dbConfig = config.PostgresConfig{
 
 func TestMain(m *testing.M) {
 	dbConnection := db.Connect(dbConfig)
-	permissionStorage = repository.New(dbConnection)
+	permissionStorage = New(dbConnection)
 	// Run all tests
 	truncateTables()
 	code := m.Run()
