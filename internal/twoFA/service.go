@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 	"github.com/skip2/go-qrcode"
@@ -24,8 +23,8 @@ type service struct {
 
 type Service interface {
 	Setup2FA(ctx context.Context, email string) (User2FASetup, error)
-	Verify2FALogin(ctx context.Context, params api.Login2FAParams, userId pgtype.UUID, passcode string) (bool, error)
-	Remove2FA(ctx context.Context, userId pgtype.UUID, passcode string) error
+	Verify2FALogin(ctx context.Context, params api.Login2FAParams, userId int64, passcode string) (bool, error)
+	Remove2FA(ctx context.Context, userId int64, passcode string) error
 }
 
 func NewService(appName string, query Querier) Service {
@@ -60,7 +59,7 @@ func (s *service) Setup2FA(ctx context.Context, email string) (User2FASetup, err
 	}, nil
 }
 
-func (s *service) Verify2FALogin(ctx context.Context, params api.Login2FAParams, userId pgtype.UUID, passcode string) (bool, error) {
+func (s *service) Verify2FALogin(ctx context.Context, params api.Login2FAParams, userId int64, passcode string) (bool, error) {
 	twoFADetails, err := s.query.Get2FADetails(ctx, userId)
 	if err != nil {
 		slog.ErrorContext(ctx, fmt.Sprintf("Failed to get 2FA details for user: %s", userId), "error", err)
@@ -74,7 +73,7 @@ func (s *service) Verify2FALogin(ctx context.Context, params api.Login2FAParams,
 	})
 }
 
-func (s *service) Remove2FA(ctx context.Context, userId pgtype.UUID, passcode string) error {
+func (s *service) Remove2FA(ctx context.Context, userId int64, passcode string) error {
 	twoFADetails, err := s.query.Get2FADetails(ctx, userId)
 	if err != nil {
 		slog.ErrorContext(ctx, fmt.Sprintf("Failed to get 2FA details for user: %s", userId), "error", err)

@@ -4,12 +4,10 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/spdeepak/go-jwt-server/api"
 	"github.com/spdeepak/go-jwt-server/internal/error"
-	"github.com/spdeepak/go-jwt-server/util"
 )
 
 const emailHeader = "User-Email"
@@ -20,10 +18,10 @@ type service struct {
 
 type Service interface {
 	CreateNewPermission(ctx *gin.Context, params api.CreateNewPermissionParams, request api.CreatePermission) (api.PermissionResponse, error)
-	DeletePermissionById(ctx *gin.Context, id uuid.UUID) error
-	GetPermissionById(ctx *gin.Context, id uuid.UUID) (api.PermissionResponse, error)
+	DeletePermissionById(ctx *gin.Context, id int64) error
+	GetPermissionById(ctx *gin.Context, id int64) (api.PermissionResponse, error)
 	ListPermissions(ctx *gin.Context) ([]api.PermissionResponse, error)
-	UpdatePermissionById(ctx *gin.Context, id api.UuId, params api.UpdatePermissionByIdParams, req api.UpdatePermission) (api.PermissionResponse, error)
+	UpdatePermissionById(ctx *gin.Context, id api.Id, params api.UpdatePermissionByIdParams, req api.UpdatePermission) (api.PermissionResponse, error)
 }
 
 func NewService(storage Querier) Service {
@@ -46,24 +44,23 @@ func (s *service) CreateNewPermission(ctx *gin.Context, params api.CreateNewPerm
 		}
 		return api.PermissionResponse{}, httperror.NewWithMetadata(httperror.PermissionCreationFailed, err.Error())
 	}
-	id, _ := util.PgtypeUUIDToUUID(createdNewPermission.ID)
 	return api.PermissionResponse{
 		CreatedAt:   createdNewPermission.CreatedAt,
 		CreatedBy:   createdNewPermission.CreatedBy,
 		Description: createdNewPermission.Description,
-		Id:          id,
+		Id:          createdNewPermission.ID,
 		Name:        createdNewPermission.Name,
 		UpdatedAt:   createdNewPermission.UpdatedAt,
 		UpdatedBy:   createdNewPermission.UpdatedBy,
 	}, nil
 }
 
-func (s *service) DeletePermissionById(ctx *gin.Context, id uuid.UUID) error {
-	return s.storage.DeletePermissionById(ctx, util.UUIDToPgtypeUUID(id))
+func (s *service) DeletePermissionById(ctx *gin.Context, id int64) error {
+	return s.storage.DeletePermissionById(ctx, id)
 }
 
-func (s *service) GetPermissionById(ctx *gin.Context, id uuid.UUID) (api.PermissionResponse, error) {
-	permissionById, err := s.storage.GetPermissionById(ctx, util.UUIDToPgtypeUUID(id))
+func (s *service) GetPermissionById(ctx *gin.Context, id int64) (api.PermissionResponse, error) {
+	permissionById, err := s.storage.GetPermissionById(ctx, id)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
 			return api.PermissionResponse{}, httperror.New(httperror.PermissionDoesntExist)
@@ -87,12 +84,11 @@ func (s *service) ListPermissions(ctx *gin.Context) ([]api.PermissionResponse, e
 	}
 	permissions := make([]api.PermissionResponse, len(listedPermissions))
 	for index, permission := range listedPermissions {
-		id, _ := util.PgtypeUUIDToUUID(permission.ID)
 		permissions[index] = api.PermissionResponse{
 			CreatedAt:   permission.CreatedAt,
 			CreatedBy:   permission.CreatedBy,
 			Description: permission.Description,
-			Id:          id,
+			Id:          permission.ID,
 			Name:        permission.Name,
 			UpdatedAt:   permission.UpdatedAt,
 			UpdatedBy:   permission.UpdatedBy,
@@ -101,10 +97,10 @@ func (s *service) ListPermissions(ctx *gin.Context) ([]api.PermissionResponse, e
 	return permissions, nil
 }
 
-func (s *service) UpdatePermissionById(ctx *gin.Context, id api.UuId, params api.UpdatePermissionByIdParams, req api.UpdatePermission) (api.PermissionResponse, error) {
+func (s *service) UpdatePermissionById(ctx *gin.Context, id api.Id, params api.UpdatePermissionByIdParams, req api.UpdatePermission) (api.PermissionResponse, error) {
 	email, _ := ctx.Get(emailHeader)
 	updatePermissionByIdParam := UpdatePermissionByIdParams{
-		ID:        util.UUIDToPgtypeUUID(id),
+		ID:        id,
 		UpdatedBy: email.(string),
 	}
 	if req.Description != nil && *req.Description != "" {

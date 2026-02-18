@@ -4,12 +4,10 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/spdeepak/go-jwt-server/api"
 	"github.com/spdeepak/go-jwt-server/internal/error"
-	"github.com/spdeepak/go-jwt-server/util"
 )
 
 type service struct {
@@ -18,11 +16,11 @@ type service struct {
 
 type Service interface {
 	CreateNewRole(ctx context.Context, params api.CreateNewRoleParams, email string, request api.CreateRole) (api.RoleResponse, error)
-	DeleteRoleById(ctx context.Context, id uuid.UUID) error
-	GetRoleById(ctx context.Context, id uuid.UUID) (api.RoleResponse, error)
+	DeleteRoleById(ctx context.Context, id int64) error
+	GetRoleById(ctx context.Context, id int64) (api.RoleResponse, error)
 	ListRoles(ctx context.Context) ([]api.RoleResponse, error)
-	UpdateRoleById(ctx context.Context, id api.UuId, email string, params api.UpdateRoleByIdParams, req api.UpdateRole) (api.RoleResponse, error)
-	AssignPermissionToRole(ctx context.Context, roleId api.UuId, params api.AssignPermissionToRoleParams, assignPermission api.AssignPermission, email string) error
+	UpdateRoleById(ctx context.Context, id api.Id, email string, params api.UpdateRoleByIdParams, req api.UpdateRole) (api.RoleResponse, error)
+	AssignPermissionToRole(ctx context.Context, roleId api.Id, params api.AssignPermissionToRoleParams, assignPermission api.AssignPermission, email string) error
 	UnassignPermissionFromRole(ctx context.Context, roleId api.RoleId, permissionId api.PermissionId) error
 	ListRolesAndItsPermissions(ctx context.Context) ([]api.RolesAndPermissionResponse, error)
 }
@@ -46,24 +44,23 @@ func (s *service) CreateNewRole(ctx context.Context, params api.CreateNewRolePar
 		}
 		return api.RoleResponse{}, httperror.NewWithMetadata(httperror.RoleCreationFailed, err.Error())
 	}
-	id, _ := util.PgtypeUUIDToUUID(createdNewRole.ID)
 	return api.RoleResponse{
 		CreatedAt:   createdNewRole.CreatedAt,
 		CreatedBy:   createdNewRole.CreatedBy,
 		Description: createdNewRole.Description,
-		Id:          id,
+		Id:          createdNewRole.ID,
 		Name:        createdNewRole.Name,
 		UpdatedAt:   createdNewRole.UpdatedAt,
 		UpdatedBy:   createdNewRole.UpdatedBy,
 	}, nil
 }
 
-func (s *service) DeleteRoleById(ctx context.Context, id uuid.UUID) error {
-	return s.storage.DeleteRoleById(ctx, util.UUIDToPgtypeUUID(id))
+func (s *service) DeleteRoleById(ctx context.Context, id int64) error {
+	return s.storage.DeleteRoleById(ctx, id)
 }
 
-func (s *service) GetRoleById(ctx context.Context, id uuid.UUID) (api.RoleResponse, error) {
-	getRoleById, err := s.storage.GetRoleById(ctx, util.UUIDToPgtypeUUID(id))
+func (s *service) GetRoleById(ctx context.Context, id int64) (api.RoleResponse, error) {
+	roleById, err := s.storage.GetRoleById(ctx, id)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
 			return api.RoleResponse{}, httperror.New(httperror.RoleDoesntExist)
@@ -71,28 +68,27 @@ func (s *service) GetRoleById(ctx context.Context, id uuid.UUID) (api.RoleRespon
 		return api.RoleResponse{}, httperror.NewWithDescription("Couldn't fetch Role for given ID", http.StatusInternalServerError)
 	}
 	return api.RoleResponse{
-		CreatedAt:   getRoleById.CreatedAt,
-		CreatedBy:   getRoleById.CreatedBy,
-		Description: getRoleById.Description,
-		Name:        getRoleById.Name,
-		UpdatedAt:   getRoleById.UpdatedAt,
-		UpdatedBy:   getRoleById.UpdatedBy,
+		CreatedAt:   roleById.CreatedAt,
+		CreatedBy:   roleById.CreatedBy,
+		Description: roleById.Description,
+		Name:        roleById.Name,
+		UpdatedAt:   roleById.UpdatedAt,
+		UpdatedBy:   roleById.UpdatedBy,
 	}, nil
 }
 
 func (s *service) ListRoles(ctx context.Context) ([]api.RoleResponse, error) {
-	listRoles, err := s.storage.ListRoles(ctx)
+	allRoles, err := s.storage.ListRoles(ctx)
 	if err != nil {
 		return nil, err
 	}
-	roles := make([]api.RoleResponse, len(listRoles))
-	for index, role := range listRoles {
-		id, _ := util.PgtypeUUIDToUUID(role.ID)
+	roles := make([]api.RoleResponse, len(allRoles))
+	for index, role := range allRoles {
 		roles[index] = api.RoleResponse{
 			CreatedAt:   role.CreatedAt,
 			CreatedBy:   role.CreatedBy,
 			Description: role.Description,
-			Id:          id,
+			Id:          role.ID,
 			Name:        role.Name,
 			UpdatedAt:   role.UpdatedAt,
 			UpdatedBy:   role.UpdatedBy,
@@ -101,24 +97,24 @@ func (s *service) ListRoles(ctx context.Context) ([]api.RoleResponse, error) {
 	return roles, nil
 }
 
-func (s *service) UpdateRoleById(ctx context.Context, id api.UuId, email string, params api.UpdateRoleByIdParams, req api.UpdateRole) (api.RoleResponse, error) {
-	updateRoleById := UpdateRoleByIdParams{
-		ID:        util.UUIDToPgtypeUUID(id),
+func (s *service) UpdateRoleById(ctx context.Context, id api.Id, email string, params api.UpdateRoleByIdParams, req api.UpdateRole) (api.RoleResponse, error) {
+	updateRoleByIdParam := UpdateRoleByIdParams{
+		ID:        id,
 		UpdatedBy: email,
 	}
 	if req.Description != nil && *req.Description != "" {
-		updateRoleById.Description = pgtype.Text{
+		updateRoleByIdParam.Description = pgtype.Text{
 			String: *req.Description,
 			Valid:  true,
 		}
 	}
 	if req.Name != nil && *req.Name != "" {
-		updateRoleById.Name = pgtype.Text{
+		updateRoleByIdParam.Name = pgtype.Text{
 			String: *req.Name,
 			Valid:  true,
 		}
 	}
-	updatedRole, err := s.storage.UpdateRoleById(ctx, updateRoleById)
+	updatedRole, err := s.storage.UpdateRoleById(ctx, updateRoleByIdParam)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
 			return api.RoleResponse{}, httperror.New(httperror.RoleDoesntExist)
@@ -135,13 +131,13 @@ func (s *service) UpdateRoleById(ctx context.Context, id api.UuId, email string,
 	}, nil
 }
 
-func (s *service) AssignPermissionToRole(ctx context.Context, roleId api.UuId, params api.AssignPermissionToRoleParams, assignPermission api.AssignPermission, email string) error {
-	permissionIds := make([]pgtype.UUID, len(assignPermission.Ids))
+func (s *service) AssignPermissionToRole(ctx context.Context, roleId api.Id, params api.AssignPermissionToRoleParams, assignPermission api.AssignPermission, email string) error {
+	permissionIds := make([]int64, len(assignPermission.Ids))
 	for index, id := range assignPermission.Ids {
-		permissionIds[index] = util.UUIDToPgtypeUUID(id)
+		permissionIds[index] = id
 	}
 	assignPermissionsToRole := AssignPermissionsParams{
-		RoleID:       util.UUIDToPgtypeUUID(roleId),
+		RoleID:       roleId,
 		PermissionID: permissionIds,
 		CreatedBy:    email,
 	}
@@ -153,8 +149,8 @@ func (s *service) AssignPermissionToRole(ctx context.Context, roleId api.UuId, p
 
 func (s *service) UnassignPermissionFromRole(ctx context.Context, roleId api.RoleId, permissionId api.PermissionId) error {
 	UnassignPermissionFromRole := UnAssignPermissionParams{
-		RoleID:       util.UUIDToPgtypeUUID(roleId),
-		PermissionID: util.UUIDToPgtypeUUID(permissionId),
+		RoleID:       roleId,
+		PermissionID: permissionId,
 	}
 	if err := s.storage.UnAssignPermission(ctx, UnassignPermissionFromRole); err != nil {
 		return httperror.NewWithDescription("Failed to assign permission to role", http.StatusInternalServerError)
@@ -168,21 +164,21 @@ func (s *service) ListRolesAndItsPermissions(ctx context.Context) ([]api.RolesAn
 		return nil, err
 	}
 
-	roleIdRolePermissionMap := make(map[uuid.UUID]*api.RolesAndPermissionResponse)
+	roleIdRolePermissionMap := make(map[int64]*api.RolesAndPermissionResponse)
 
 	for _, rolePermission := range rolesAndItsPermissions {
-		rolePermissionResponse, exists := roleIdRolePermissionMap[rolePermission.RoleID.Bytes]
+		rolePermissionResponse, exists := roleIdRolePermissionMap[rolePermission.RoleID]
 		if !exists {
 			var rolePerm api.RolesAndPermissionResponse
 			rolePerm.Roles.CreatedAt = rolePermission.RoleCreatedAt
 			rolePerm.Roles.CreatedBy = rolePermission.RoleCreatedBy
 			rolePerm.Roles.Description = rolePermission.RoleDescription
-			rolePerm.Roles.Id = rolePermission.RoleID.Bytes
+			rolePerm.Roles.Id = rolePermission.RoleID
 			rolePerm.Roles.Name = rolePermission.RoleName
 			rolePerm.Roles.UpdatedAt = rolePermission.RoleUpdatedAt
 			rolePerm.Roles.UpdatedBy = rolePermission.RoleUpdatedBy
-			roleIdRolePermissionMap[rolePermission.RoleID.Bytes] = &rolePerm
-			rolePermissionResponse = roleIdRolePermissionMap[rolePermission.RoleID.Bytes]
+			roleIdRolePermissionMap[rolePermission.RoleID] = &rolePerm
+			rolePermissionResponse = roleIdRolePermissionMap[rolePermission.RoleID]
 		}
 
 		if rolePermission.PermissionID.Valid {
@@ -190,7 +186,7 @@ func (s *service) ListRolesAndItsPermissions(ctx context.Context) ([]api.RolesAn
 				CreatedAt:   rolePermission.PermissionCreatedAt.Time,
 				CreatedBy:   rolePermission.PermissionCreatedBy.String,
 				Description: rolePermission.PermissionDescription.String,
-				Id:          rolePermission.PermissionID.Bytes,
+				Id:          rolePermission.PermissionID.Int64,
 				Name:        rolePermission.PermissionName.String,
 				UpdatedAt:   rolePermission.PermissionUpdatedAt.Time,
 				UpdatedBy:   rolePermission.PermissionUpdatedBy.String,

@@ -143,7 +143,7 @@ GROUP BY u.id, u.email, u.password,
 -- name: AssignRolesToUser :exec
 INSERT INTO user_roles (user_id, role_id, created_at, created_by)
 SELECT sqlc.arg('user_id'),
-       unnest(sqlc.arg('role_id')::uuid[]),
+       unnest(sqlc.arg('role_id')::bigserial[]),
        now(),
        sqlc.arg('createdBy')
 ON CONFLICT DO NOTHING;

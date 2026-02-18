@@ -540,7 +540,7 @@ paths:
           permissions: [ permissions:read ]
       parameters:
         - $ref: '#/components/parameters/UserAgent'
-        - $ref: '#/components/parameters/UuId'
+        - $ref: '#/components/parameters/Id'
       responses:
         '200':
           description: Permission details
@@ -563,7 +563,7 @@ paths:
           permissions: [ permissions:read, permissions:update ]
       parameters:
         - $ref: '#/components/parameters/UserAgent'
-        - $ref: '#/components/parameters/UuId'
+        - $ref: '#/components/parameters/Id'
       requestBody:
         description: Create role request body
         required: true
@@ -593,7 +593,7 @@ paths:
           permissions: [ permissions:read, permissions:delete ]
       parameters:
         - $ref: '#/components/parameters/UserAgent'
-        - $ref: '#/components/parameters/UuId'
+        - $ref: '#/components/parameters/Id'
       responses:
         '200':
           description: Delete permission confirmation
@@ -694,7 +694,7 @@ paths:
           self: true
       parameters:
         - $ref: '#/components/parameters/UserAgent'
-        - $ref: '#/components/parameters/UuId'
+        - $ref: '#/components/parameters/Id'
       responses:
         '200':
           description: Roles of a user
@@ -716,7 +716,7 @@ paths:
           permissions: [ users:read, users:assign-roles ]
       parameters:
         - $ref: '#/components/parameters/UserAgent'
-        - $ref: '#/components/parameters/UuId'
+        - $ref: '#/components/parameters/Id'
       requestBody:
         description: List of permissions to assign to a role
         content:
@@ -744,7 +744,7 @@ paths:
           permissions: [ users:read, users:lock ]
       parameters:
         - $ref: '#/components/parameters/UserAgent'
-        - $ref: '#/components/parameters/UuId'
+        - $ref: '#/components/parameters/Id'
       responses:
         '200':
           description: User locked successfully
@@ -766,7 +766,7 @@ paths:
           permissions: [ users:read, users:unlock ]
       parameters:
         - $ref: '#/components/parameters/UserAgent'
-        - $ref: '#/components/parameters/UuId'
+        - $ref: '#/components/parameters/Id'
       responses:
         '200':
           description: User unlocked successfully
@@ -790,7 +790,7 @@ paths:
           permissions: [ users:read, users:disable ]
       parameters:
         - $ref: '#/components/parameters/UserAgent'
-        - $ref: '#/components/parameters/UuId'
+        - $ref: '#/components/parameters/Id'
       responses:
         '204':
           description: User disabled successfully
@@ -813,7 +813,7 @@ paths:
           permissions: [ users:read, users:enable ]
       parameters:
         - $ref: '#/components/parameters/UserAgent'
-        - $ref: '#/components/parameters/UuId'
+        - $ref: '#/components/parameters/Id'
       responses:
         '204':
           description: User enabled successfully
@@ -834,7 +834,7 @@ paths:
           permissions: [ users:read, users:assign-roles, users:unassign-roles ]
       parameters:
         - $ref: '#/components/parameters/UserAgent'
-        - $ref: '#/components/parameters/UuId'
+        - $ref: '#/components/parameters/Id'
         - $ref: '#/components/parameters/RoleId'
       responses:
         '200':
@@ -927,23 +927,14 @@ components:
       required: true
       schema:
         type: string
-    UuId:
+    Id:
       name: id
       description: id
-      example: 7f36046c-3f79-4e6f-a35e-2ce146adc59c
       in: path
       required: true
       schema:
-        type: string
-        format: uuid
-    GETId:
-      name: id
-      description: id
-      example: 7f36046c-3f79-4e6f-a35e-2ce146adc59c
-      in: query
-      schema:
-        type: string
-        format: uuid
+        type: integer
+        format: int64
     GETName:
       name: name
       description: name
@@ -957,8 +948,8 @@ components:
       in: path
       required: true
       schema:
-        type: string
-        format: uuid
+        type: integer
+        format: int64
     PermissionId:
       name: permissionId
       description: id
@@ -966,8 +957,8 @@ components:
       in: path
       required: true
       schema:
-        type: string
-        format: uuid
+        type: integer
+        format: int64
   schemas:
     OAuthError:
       type: object
@@ -1208,8 +1199,8 @@ components:
         - updatedBy
       properties:
         id:
-          type: string
-          format: uuid
+          type: integer
+          format: int64
         name:
           type: string
           pattern: '[a-zA-Z_-]+'
@@ -1237,8 +1228,8 @@ components:
         - updatedBy
       properties:
         id:
-          type: string
-          format: uuid
+          type: integer
+          format: int64
         name:
           type: string
           pattern: '[a-zA-Z_-]+'
@@ -1262,8 +1253,8 @@ components:
         ids:
           type: array
           items:
-            type: string
-            format: uuid
+            type: integer
+            format: int64
     RolesAndPermissionResponse:
       type: object
       required:
@@ -1282,8 +1273,8 @@ components:
             - permissions
           properties:
             id:
-              type: string
-              format: uuid
+              type: integer
+              format: int64
             name:
               type: string
               pattern: '[a-zA-Z_-]+'
@@ -1314,8 +1305,8 @@ components:
         - permissions
       properties:
         id:
-          type: string
-          format: uuid
+          type: integer
+          format: int64
         email:
           type: string
           format: email
@@ -1340,8 +1331,8 @@ components:
         roles:
           type: array
           items:
-            type: string
-            format: uuid
+            type: integer
+            format: int64
     UserDetails:
       type: object
       required:
@@ -1357,8 +1348,8 @@ components:
         - permissions
       properties:
         id:
-          type: string
-          format: uuid
+          type: integer
+          format: int64
         email:
           type: string
           format: email
@@ -1383,8 +1374,8 @@ components:
         - description
       properties:
         id:
-          type: string
-          format: uuid
+          type: integer
+          format: int64
         name:
           type: string
           pattern: '[a-zA-Z_-]+'
@@ -1398,8 +1389,8 @@ components:
         - description
       properties:
         id:
-          type: string
-          format: uuid
+          type: integer
+          format: int64
         name:
           type: string
           pattern: '[a-zA-Z_-]+'

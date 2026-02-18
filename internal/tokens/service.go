@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -47,7 +48,7 @@ type (
 		// ListActiveSessions list of all active sessions
 		ListActiveSessions(ctx context.Context, email string) ([]api.GetAllSessionResponse, error)
 		// GenerateTempToken list of all active sessions
-		GenerateTempToken(ctx context.Context, userId uuid.UUID) (api.LoginRequires2FA, error)
+		GenerateTempToken(ctx context.Context, userId int64) (api.LoginRequires2FA, error)
 	}
 )
 
@@ -208,7 +209,7 @@ func (s *service) ListActiveSessions(ctx context.Context, email string) ([]api.G
 	return activeSessionResponse, nil
 }
 
-func (s *service) GenerateTempToken(ctx context.Context, userId uuid.UUID) (api.LoginRequires2FA, error) {
+func (s *service) GenerateTempToken(ctx context.Context, userId int64) (api.LoginRequires2FA, error) {
 	now := time.Now()
 	tempTokenClaims := s.tempTokenClaims(userId, now)
 	tempToken := jwt.NewWithClaims(jwt.SigningMethodHS256, tempTokenClaims)
@@ -222,13 +223,13 @@ func (s *service) GenerateTempToken(ctx context.Context, userId uuid.UUID) (api.
 	}, nil
 }
 
-func (s *service) tempTokenClaims(userId uuid.UUID, now time.Time) TokenClaims {
+func (s *service) tempTokenClaims(userId int64, now time.Time) TokenClaims {
 	return TokenClaims{
 		Type:      "2FA",
 		AuthLevel: "pre-2fa",
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    s.issuer,
-			Subject:   userId.String(),
+			Subject:   strconv.FormatInt(userId, 10),
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(5 * time.Minute)},
 			NotBefore: &jwt.NumericDate{Time: now},
 			IssuedAt:  &jwt.NumericDate{Time: now},
@@ -248,7 +249,7 @@ func (s *service) bearerTokenClaims(user User, now time.Time, roles, permissions
 		Type:        "Bearer",
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    s.issuer,
-			Subject:   user.ID.String(),
+			Subject:   strconv.FormatInt(user.ID, 10),
 			ExpiresAt: &jwt.NumericDate{Time: now.Add(s.bearerExpiryTime)},
 			NotBefore: &jwt.NumericDate{Time: now},
 			IssuedAt:  &jwt.NumericDate{Time: now},
@@ -263,7 +264,7 @@ func (s *service) refreshTokenClaims(user User, now time.Time) TokenClaims {
 		Type:  "Refresh",
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    s.issuer,
-			Subject:   user.ID.String(),
+			Subject:   strconv.FormatInt(user.ID, 10),
 			ExpiresAt: &jwt.NumericDate{Time: now.Add(s.refreshExpiryTime)},
 			NotBefore: &jwt.NumericDate{Time: now},
 			IssuedAt:  &jwt.NumericDate{Time: now},

@@ -6,9 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgtype"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 	"golang.org/x/crypto/bcrypt"
 
@@ -16,7 +14,6 @@ import (
 	"github.com/spdeepak/go-jwt-server/internal/error"
 	"github.com/spdeepak/go-jwt-server/internal/tokens"
 	"github.com/spdeepak/go-jwt-server/internal/twoFA"
-	"github.com/spdeepak/go-jwt-server/util"
 )
 
 type (
@@ -28,11 +25,11 @@ type (
 	Service interface {
 		Signup(ctx *gin.Context, user api.UserSignup) (api.SignUpWith2FAResponse, error)
 		Login(ctx *gin.Context, params api.LoginParams, login api.UserLogin) (any, error)
-		Login2FA(ctx *gin.Context, params api.Login2FAParams, userId uuid.UUID, passcode string) (api.LoginSuccessWithJWT, error)
+		Login2FA(ctx *gin.Context, params api.Login2FAParams, userId int64, passcode string) (api.LoginSuccessWithJWT, error)
 		RefreshToken(ctx *gin.Context, params api.RefreshParams, refresh api.Refresh) (api.LoginSuccessWithJWT, error)
-		GetUserRolesAndPermissions(ctx *gin.Context, id api.UuId, params api.GetRolesOfUserParams) (api.UserWithRoles, error)
-		AssignRolesToUser(ctx *gin.Context, userId api.UuId, params api.AssignRolesToUserParams, assignRoleToUser api.AssignRoleToUser, email string) error
-		UnassignRolesOfUser(ctx *gin.Context, userId api.UuId, roleId api.RoleId, params api.RemoveRolesForUserParams) error
+		GetUserRolesAndPermissions(ctx *gin.Context, id api.Id, params api.GetRolesOfUserParams) (api.UserWithRoles, error)
+		AssignRolesToUser(ctx *gin.Context, userId api.Id, params api.AssignRolesToUserParams, assignRoleToUser api.AssignRoleToUser, email string) error
+		UnassignRolesOfUser(ctx *gin.Context, userId api.Id, roleId api.RoleId, params api.RemoveRolesForUserParams) error
 	}
 )
 
@@ -107,7 +104,7 @@ func (s *service) Login(ctx *gin.Context, params api.LoginParams, login api.User
 		return api.LoginSuccessWithJWT{}, httperror.New(httperror.InvalidCredentials)
 	}
 	if user.TwoFaEnabled {
-		return s.tokenService.GenerateTempToken(ctx, user.UserID.Bytes)
+		return s.tokenService.GenerateTempToken(ctx, user.UserID)
 	}
 	if user.Locked {
 		return api.LoginSuccessWithJWT{}, httperror.New(httperror.UserAccountLocked)
@@ -125,9 +122,8 @@ func (s *service) Login(ctx *gin.Context, params api.LoginParams, login api.User
 	return s.tokenService.GenerateNewTokenPair(ctx, ctx.ClientIP(), tokenParams, jwtUser, user.RoleNames, user.PermissionNames)
 }
 
-func (s *service) Login2FA(ctx *gin.Context, params api.Login2FAParams, userId uuid.UUID, passcode string) (api.LoginSuccessWithJWT, error) {
-	pgtypeUUID := util.UUIDToPgtypeUUID(userId)
-	isValid, err := s.twoFAService.Verify2FALogin(ctx, params, pgtypeUUID, passcode)
+func (s *service) Login2FA(ctx *gin.Context, params api.Login2FAParams, userId int64, passcode string) (api.LoginSuccessWithJWT, error) {
+	isValid, err := s.twoFAService.Verify2FALogin(ctx, params, userId, passcode)
 	if err != nil {
 		return api.LoginSuccessWithJWT{}, httperror.NewWithMetadata(httperror.InvalidTwoFA, err.Error())
 	}
@@ -135,7 +131,7 @@ func (s *service) Login2FA(ctx *gin.Context, params api.Login2FAParams, userId u
 		return api.LoginSuccessWithJWT{}, httperror.New(httperror.InvalidTwoFA)
 	}
 
-	user, err := s.query.GetUserById(ctx, pgtypeUUID)
+	user, err := s.query.GetUserById(ctx, userId)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
 			return api.LoginSuccessWithJWT{}, httperror.New(httperror.InvalidCredentials)
@@ -188,13 +184,13 @@ func (s *service) RefreshToken(ctx *gin.Context, params api.RefreshParams, refre
 	return s.tokenService.RefreshAndInvalidateToken(ctx, ctx.ClientIP(), tokenParams, refresh, jwtUser, user.RoleNames, user.PermissionNames)
 }
 
-func (s *service) GetUserRolesAndPermissions(ctx *gin.Context, id api.UuId, params api.GetRolesOfUserParams) (api.UserWithRoles, error) {
-	userRolesAndPermissions, err := s.query.GetUserRolesAndPermissionsFromID(ctx, util.UUIDToPgtypeUUID(id))
+func (s *service) GetUserRolesAndPermissions(ctx *gin.Context, id api.Id, params api.GetRolesOfUserParams) (api.UserWithRoles, error) {
+	userRolesAndPermissions, err := s.query.GetUserRolesAndPermissionsFromID(ctx, id)
 	if err != nil {
 		return api.UserWithRoles{}, err
 	}
 	return api.UserWithRoles{
-		Id:          userRolesAndPermissions.UserID.Bytes,
+		Id:          userRolesAndPermissions.UserID,
 		Email:       openapi_types.Email(userRolesAndPermissions.Email),
 		FirstName:   userRolesAndPermissions.FirstName,
 		LastName:    userRolesAndPermissions.LastName,
@@ -203,13 +199,13 @@ func (s *service) GetUserRolesAndPermissions(ctx *gin.Context, id api.UuId, para
 	}, nil
 }
 
-func (s *service) AssignRolesToUser(ctx *gin.Context, userId api.UuId, params api.AssignRolesToUserParams, assignRoleToUser api.AssignRoleToUser, email string) error {
-	rolesIds := make([]pgtype.UUID, len(assignRoleToUser.Roles))
+func (s *service) AssignRolesToUser(ctx *gin.Context, userId api.Id, params api.AssignRolesToUserParams, assignRoleToUser api.AssignRoleToUser, email string) error {
+	rolesIds := make([]int64, len(assignRoleToUser.Roles))
 	for index, id := range assignRoleToUser.Roles {
-		rolesIds[index] = util.UUIDToPgtypeUUID(id)
+		rolesIds[index] = id
 	}
 	assignRolesToUser := AssignRolesToUserParams{
-		UserID:    util.UUIDToPgtypeUUID(userId),
+		UserID:    userId,
 		RoleID:    rolesIds,
 		CreatedBy: email,
 	}
@@ -225,10 +221,10 @@ func (s *service) AssignRolesToUser(ctx *gin.Context, userId api.UuId, params ap
 	return nil
 }
 
-func (s *service) UnassignRolesOfUser(ctx *gin.Context, userId api.UuId, roleId api.RoleId, params api.RemoveRolesForUserParams) error {
+func (s *service) UnassignRolesOfUser(ctx *gin.Context, userId api.Id, roleId api.RoleId, params api.RemoveRolesForUserParams) error {
 	unassignRolesToUser := UnassignRolesToUserParams{
-		UserID: util.UUIDToPgtypeUUID(userId),
-		RoleID: util.UUIDToPgtypeUUID(roleId),
+		UserID: userId,
+		RoleID: roleId,
 	}
 	err := s.query.UnassignRolesToUser(ctx, unassignRolesToUser)
 	if err != nil {
