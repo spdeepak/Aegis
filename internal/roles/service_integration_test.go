@@ -233,87 +233,81 @@ func TestService_UpdateRoleById(t *testing.T) {
 
 func TestService_AssignPermissionToRole(t *testing.T) {
 	truncateTables()
-	t.Run("Assign Permission to Role OK", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		ctx, _ := gin.CreateTestContext(w)
-		ctx.Set("User-Email", "first.last@example.com")
-		request := api.CreateRole{
-			Description: "role description",
-			Name:        "role_name",
-		}
-		roleService := NewService(roleStorage)
-		createdRole, err := roleService.CreateNewRole(ctx, api.CreateNewRoleParams{}, "first.last@example.com", request)
-		assert.NoError(t, err)
-		assert.NotEmpty(t, createdRole)
-		permissionsService := permissions.NewService(permissionStorage)
-		permission, err := permissionsService.CreateNewPermission(ctx, api.CreateNewPermissionParams{}, api.CreatePermission{Description: "permission description", Name: "role::create"})
-		assert.NoError(t, err)
-		assert.NotEmpty(t, permission)
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Set("User-Email", "first.last@example.com")
+	request := api.CreateRole{
+		Description: "role description",
+		Name:        "role_name",
+	}
+	roleService := NewService(roleStorage)
+	createdRole, err := roleService.CreateNewRole(ctx, api.CreateNewRoleParams{}, "first.last@example.com", request)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, createdRole)
+	permissionsService := permissions.NewService(permissionStorage)
+	permission, err := permissionsService.CreateNewPermission(ctx, api.CreateNewPermissionParams{}, api.CreatePermission{Description: "permission description", Name: "role::create"})
+	assert.NoError(t, err)
+	assert.NotEmpty(t, permission)
 
-		err = roleService.AssignPermissionToRole(ctx, createdRole.Id, api.AssignPermissionToRoleParams{}, api.AssignPermission{Ids: []int64{permission.Id}}, "first.last@example.com")
-		assert.NoError(t, err)
-	})
+	err = roleService.AssignPermissionToRole(ctx, createdRole.Id, api.AssignPermissionToRoleParams{}, api.AssignPermission{Ids: []int64{permission.Id}}, "first.last@example.com")
+	assert.NoError(t, err)
 }
 
 func TestService_UnassignPermissionToRole(t *testing.T) {
 	truncateTables()
-	t.Run("Assign Permission to Role OK", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		ctx, _ := gin.CreateTestContext(w)
-		ctx.Set("User-Email", "first.last@example.com")
-		request := api.CreateRole{
-			Description: "role description",
-			Name:        "role_name",
-		}
-		roleService := NewService(roleStorage)
-		createdRole, err := roleService.CreateNewRole(ctx, api.CreateNewRoleParams{}, "first.last@example.com", request)
-		assert.NoError(t, err)
-		assert.NotEmpty(t, createdRole)
-		permissionsService := permissions.NewService(permissionStorage)
-		permission, err := permissionsService.CreateNewPermission(ctx, api.CreateNewPermissionParams{}, api.CreatePermission{Description: "permission description", Name: "role::create"})
-		assert.NoError(t, err)
-		assert.NotEmpty(t, permission)
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Set("User-Email", "first.last@example.com")
+	request := api.CreateRole{
+		Description: "role description",
+		Name:        "role_name",
+	}
+	roleService := NewService(roleStorage)
+	createdRole, err := roleService.CreateNewRole(ctx, api.CreateNewRoleParams{}, "first.last@example.com", request)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, createdRole)
+	permissionsService := permissions.NewService(permissionStorage)
+	permission, err := permissionsService.CreateNewPermission(ctx, api.CreateNewPermissionParams{}, api.CreatePermission{Description: "permission description", Name: "role::create"})
+	assert.NoError(t, err)
+	assert.NotEmpty(t, permission)
 
-		err = roleService.AssignPermissionToRole(ctx, createdRole.Id, api.AssignPermissionToRoleParams{}, api.AssignPermission{Ids: []int64{permission.Id}}, "first.last@example.com")
-		assert.NoError(t, err)
-		err = roleService.UnassignPermissionFromRole(ctx, createdRole.Id, permission.Id)
-		assert.NoError(t, err)
-	})
+	err = roleService.AssignPermissionToRole(ctx, createdRole.Id, api.AssignPermissionToRoleParams{}, api.AssignPermission{Ids: []int64{permission.Id}}, "first.last@example.com")
+	assert.NoError(t, err)
+	err = roleService.UnassignPermissionFromRole(ctx, createdRole.Id, permission.Id)
+	assert.NoError(t, err)
 }
 
 func TestService_ListRolesAndItsPermissions(t *testing.T) {
 	truncateTables()
-	t.Run("List Roles And Its Permissions OK", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		ctx, _ := gin.CreateTestContext(w)
-		ctx.Set("User-Email", "first.last@example.com")
-		request := api.CreateRole{
-			Description: "role description",
-			Name:        "role_name",
-		}
-		roleService := NewService(roleStorage)
-		permissionsService := permissions.NewService(permissionStorage)
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Set("User-Email", "first.last@example.com")
+	request := api.CreateRole{
+		Description: "role description",
+		Name:        "role_name",
+	}
+	roleService := NewService(roleStorage)
+	permissionsService := permissions.NewService(permissionStorage)
 
-		for num := range 10 {
-			request.Name = fmt.Sprintf("%s_%d", request.Name, num)
-			createdRole, err := roleService.CreateNewRole(ctx, api.CreateNewRoleParams{}, "first.last@example.com", request)
-			assert.NoError(t, err)
-			assert.NotEmpty(t, createdRole)
-			for pn := range 5 {
-				permission, err := permissionsService.CreateNewPermission(ctx, api.CreateNewPermissionParams{}, api.CreatePermission{Description: "permission description", Name: fmt.Sprintf("role::create_%d_%d", num, pn)})
-				assert.NoError(t, err)
-				assert.NotEmpty(t, permission)
-				err = roleService.AssignPermissionToRole(ctx, createdRole.Id, api.AssignPermissionToRoleParams{}, api.AssignPermission{Ids: []int64{permission.Id}}, "first.last@example.com")
-				assert.NoError(t, err)
-			}
-		}
-		rolesAndPermissions, err := roleService.ListRolesAndItsPermissions(ctx)
+	for num := range 10 {
+		request.Name = fmt.Sprintf("%s_%d", request.Name, num)
+		createdRole, err := roleService.CreateNewRole(ctx, api.CreateNewRoleParams{}, "first.last@example.com", request)
 		assert.NoError(t, err)
-		assert.NotEmpty(t, rolesAndPermissions)
-		assert.Len(t, rolesAndPermissions, 10)
-		for _, rolesAndPermission := range rolesAndPermissions {
-			assert.NotEmpty(t, rolesAndPermission)
-			assert.Len(t, rolesAndPermission.Roles.Permissions, 5)
+		assert.NotEmpty(t, createdRole)
+		for pn := range 5 {
+			permission, err := permissionsService.CreateNewPermission(ctx, api.CreateNewPermissionParams{}, api.CreatePermission{Description: "permission description", Name: fmt.Sprintf("role::create_%d_%d", num, pn)})
+			assert.NoError(t, err)
+			assert.NotEmpty(t, permission)
+			err = roleService.AssignPermissionToRole(ctx, createdRole.Id, api.AssignPermissionToRoleParams{}, api.AssignPermission{Ids: []int64{permission.Id}}, "first.last@example.com")
+			assert.NoError(t, err)
 		}
-	})
+	}
+	rolesAndPermissions, err := roleService.ListRolesAndItsPermissions(ctx)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, rolesAndPermissions)
+	assert.Len(t, rolesAndPermissions, 10)
+	for _, rolesAndPermission := range rolesAndPermissions {
+		assert.NotEmpty(t, rolesAndPermission)
+		assert.Len(t, rolesAndPermission.Roles.Permissions, 5)
+	}
 }
