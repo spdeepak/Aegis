@@ -1,7 +1,7 @@
 -- JWT Secrets
 CREATE TABLE IF NOT EXISTS jwt_secrets
 (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     secret      TEXT        NOT NULL,
     secret_type TEXT        NOT NULL DEFAULT 'default',
     is_valid    BOOLEAN     NOT NULL default TRUE,
@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS jwt_secrets
 -- Users
 CREATE TABLE IF NOT EXISTS users
 (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     email          TEXT        NOT NULL UNIQUE,
     first_name     TEXT        NOT NULL,
     last_name      TEXT        NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS users_password
 -- 2FA
 CREATE TABLE IF NOT EXISTS users_2fa
 (
-    id      BIGSERIAL PRIMARY KEY,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     user_id BIGSERIAL NOT NULL,
     secret     TEXT        NOT NULL,
     url        TEXT        NOT NULL,
@@ -55,7 +55,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS unique_active_totp_per_user
 -- Roles
 CREATE TABLE IF NOT EXISTS roles
 (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name        TEXT        NOT NULL UNIQUE, -- e.g., "admin", "user"
     description TEXT        NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS roles
 -- Permissions
 CREATE TABLE IF NOT EXISTS permissions
 (
-    id BIGSERIAL PRIMARY KEY,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name        TEXT        NOT NULL UNIQUE, -- e.g., "user:read"
     description TEXT        NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -148,7 +148,7 @@ CREATE INDEX IF NOT EXISTS idx_refresh_valid ON tokens (refresh_token, ip_addres
 -- User Security Actions
 CREATE TABLE IF NOT EXISTS user_security_actions
 (
-    id       BIGSERIAL PRIMARY KEY,
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     user_id  BIGSERIAL NOT NULL,
     actor_id BIGSERIAL NOT NULL,
     action      TEXT        NOT NULL,
