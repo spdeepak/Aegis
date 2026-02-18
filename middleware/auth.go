@@ -4,11 +4,11 @@ import (
 	"errors"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/spdeepak/go-jwt-server/internal/error"
@@ -126,7 +126,7 @@ func JWTAuthMiddleware(secret []byte, skipPaths []string, issuer string) gin.Han
 			})
 			return
 		}
-		userId, err := uuid.Parse(claims.Subject)
+		userId, err := strconv.ParseInt(claims.Subject, 10, 64)
 		if err != nil {
 			authFailures.WithLabelValues("RequiredClaimsMissing").Inc()
 			c.AbortWithStatusJSON(http.StatusUnauthorized, httperror.HttpError{
