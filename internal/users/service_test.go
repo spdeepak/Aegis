@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
@@ -312,7 +311,7 @@ func TestService_Login2FA_OK(t *testing.T) {
 	req.Header.Set("X-Forwarded-For", "192.168.1.100")
 	ctx.Request = req
 
-	userId := pgtype.UUID{Bytes: uuid.New(), Valid: true}
+	userId := int64(9999999)
 
 	//2FA
 	twoFAQuery := twoFA.NewMockQuerier(t)
@@ -332,7 +331,7 @@ func TestService_Login2FA_OK(t *testing.T) {
 
 	userService := NewService(userQuery, twoFAService, tokenService)
 
-	login2FA, err := userService.Login2FA(ctx, api.Login2FAParams{}, userId.Bytes, passcode)
+	login2FA, err := userService.Login2FA(ctx, api.Login2FAParams{}, userId, passcode)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, login2FA)
 	assert.NotEmpty(t, login2FA.AccessToken)
@@ -348,7 +347,7 @@ func TestService_Login2FA_NOK_UserLocked(t *testing.T) {
 	req.Header.Set("X-Forwarded-For", "192.168.1.100")
 	ctx.Request = req
 
-	userId := pgtype.UUID{Bytes: uuid.New(), Valid: true}
+	userId := int64(9999999)
 
 	//2FA
 	twoFAQuery := twoFA.NewMockQuerier(t)
@@ -363,7 +362,7 @@ func TestService_Login2FA_NOK_UserLocked(t *testing.T) {
 
 	userService := NewService(userQuery, twoFAService, nil)
 
-	login2FA, err := userService.Login2FA(ctx, api.Login2FAParams{}, userId.Bytes, passcode)
+	login2FA, err := userService.Login2FA(ctx, api.Login2FAParams{}, userId, passcode)
 	assert.Error(t, err)
 	var he httperror.HttpError
 	assert.True(t, errors.As(err, &he))
@@ -380,7 +379,7 @@ func TestService_Login2FA_NOK_UserNotExist(t *testing.T) {
 	req.Header.Set("X-Forwarded-For", "192.168.1.100")
 	ctx.Request = req
 
-	userId := uuid.New()
+	userId := int64(9999999)
 
 	//2FA
 	twoFAQuery := twoFA.NewMockQuerier(t)
@@ -416,7 +415,7 @@ func TestService_Login2FA_NOK_UserGetError(t *testing.T) {
 	req.Header.Set("X-Forwarded-For", "192.168.1.100")
 	ctx.Request = req
 
-	userId := uuid.New()
+	userId := int64(9999999)
 
 	//2FA
 	twoFAQuery := twoFA.NewMockQuerier(t)
@@ -452,7 +451,7 @@ func TestService_Login2FA_NOK_Old2FACode(t *testing.T) {
 	req.Header.Set("X-Forwarded-For", "192.168.1.100")
 	ctx.Request = req
 
-	userId := uuid.New()
+	userId := int64(9999999)
 
 	//2FA
 	twoFAQuery := twoFA.NewMockQuerier(t)

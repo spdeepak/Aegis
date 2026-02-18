@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 
 	"github.com/spdeepak/go-jwt-server/api"
 	"github.com/spdeepak/go-jwt-server/internal/error"
@@ -166,7 +165,7 @@ func (s *Server) Login2FA(ctx *gin.Context, params api.Login2FAParams) {
 		ctx.Error(httperror.New(httperror.InvalidRequestBody))
 		return
 	}
-	response, err := s.userService.Login2FA(ctx, params, userId.(uuid.UUID), verify2FARequest.TwoFACode)
+	response, err := s.userService.Login2FA(ctx, params, userId.(int64), verify2FARequest.TwoFACode)
 	if err != nil {
 		ctx.Error(err)
 		ctx.AbortWithStatus(err.(httperror.HttpError).StatusCode)
@@ -187,7 +186,7 @@ func (s *Server) Remove2FA(ctx *gin.Context, params api.Remove2FAParams) {
 		ctx.Error(httperror.New(httperror.InvalidRequestBody))
 		return
 	}
-	err := s.twoFAService.Remove2FA(ctx, util.UUIDToPgtypeUUID(userId.(uuid.UUID)), verify2FARequest.TwoFACode)
+	err := s.twoFAService.Remove2FA(ctx, userId.(int64), verify2FARequest.TwoFACode)
 	if err != nil {
 		ctx.Error(err)
 		return

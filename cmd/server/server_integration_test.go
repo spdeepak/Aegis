@@ -15,7 +15,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -550,13 +549,11 @@ func TestServer_GetRoleById_OK(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, allRoles)
 	for _, role := range allRoles {
-		id, rerr := role.ID.UUIDValue()
-		assert.NoError(t, rerr)
 		roleRes := api.RoleResponse{
 			CreatedAt:   role.CreatedAt.In(time.UTC),
 			CreatedBy:   role.CreatedBy,
 			Description: role.Description,
-			Id:          id.Bytes,
+			Id:          role.ID,
 			Name:        role.Name,
 			UpdatedAt:   role.UpdatedAt.In(time.UTC),
 			UpdatedBy:   role.UpdatedBy,
@@ -574,7 +571,7 @@ func TestServer_GetRoleById_NOK_NotFound(t *testing.T) {
 	assert.NotEmpty(t, allRoles)
 
 	//Get Role By ID
-	getRoleByIdNotFound(t, loginRes, uuid.New().String())
+	getRoleByIdNotFound(t, loginRes, 99999999999)
 }
 
 func TestServer_ListAllRoles_OK(t *testing.T) {
@@ -599,13 +596,11 @@ func TestServer_ListAllRoles_OK(t *testing.T) {
 	assert.NotEmpty(t, allRoles)
 	apiAllRoles := make([]api.RoleResponse, 0)
 	for _, role := range allRoles {
-		id, rerr := role.ID.UUIDValue()
-		assert.NoError(t, rerr)
 		apiAllRoles = append(apiAllRoles, api.RoleResponse{
 			CreatedAt:   role.CreatedAt.In(time.UTC),
 			CreatedBy:   role.CreatedBy,
 			Description: role.Description,
-			Id:          id.Bytes,
+			Id:          role.ID,
 			Name:        role.Name,
 			UpdatedAt:   role.UpdatedAt.In(time.UTC),
 			UpdatedBy:   role.UpdatedBy,
@@ -635,7 +630,7 @@ func TestServer_UpdateRoleById_OK(t *testing.T) {
 	updateRole, err := json.Marshal(api.UpdateRole{
 		Description: &updatedRoleDescription,
 	})
-	req, err := http.NewRequest(http.MethodPatch, "/api/v1/access-control/roles/"+roleRes.Id.String(), bytes.NewReader(updateRole))
+	req, err := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/access-control/roles/%d", roleRes.Id), bytes.NewReader(updateRole))
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -667,14 +662,14 @@ func TestServer_UpdateRoleById_NOK_RoleNotFound(t *testing.T) {
 		Name:        "admin_role_1",
 	})
 	//Delete Role by Id
-	deleteRoleById(t, loginRes, roleRes.Id.String())
+	deleteRoleById(t, loginRes, roleRes.Id)
 
 	//Update role by ID
 	updatedRoleDescription := "role description Updated"
 	updateRole, err := json.Marshal(api.UpdateRole{
 		Description: &updatedRoleDescription,
 	})
-	req, err := http.NewRequest(http.MethodPatch, "/api/v1/access-control/roles/"+roleRes.Id.String(), bytes.NewReader(updateRole))
+	req, err := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/access-control/roles/%d", roleRes.Id), bytes.NewReader(updateRole))
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -697,10 +692,10 @@ func TestServer_DeleteRoleById_NOK_NotFound(t *testing.T) {
 		Name:        "admin_role_1",
 	})
 	//Delete Role by Id
-	deleteRoleById(t, loginRes, roleRes.Id.String())
+	deleteRoleById(t, loginRes, roleRes.Id)
 
 	//Get Role By ID
-	getRoleByIdNotFound(t, loginRes, roleRes.Id.String())
+	getRoleByIdNotFound(t, loginRes, roleRes.Id)
 }
 
 func TestServer_CreateNewPermission_OK(t *testing.T) {
@@ -732,7 +727,7 @@ func TestServer_GetPermissionById_NOK_NotFound(t *testing.T) {
 	//Login
 	loginRes := loginSuperAdmin(t)
 	//Get Permission By Id
-	getPermissionByIdNotFound(t, loginRes, uuid.New().String())
+	getPermissionByIdNotFound(t, loginRes, 99999999999)
 }
 
 func TestServer_ListAllPermissions_OK(t *testing.T) {
@@ -760,13 +755,11 @@ func TestServer_ListAllPermissions_OK(t *testing.T) {
 	assert.NotEmpty(t, allPermissions)
 	apiAllPermissions := make([]api.PermissionResponse, 0)
 	for _, role := range allPermissions {
-		id, rerr := role.ID.UUIDValue()
-		assert.NoError(t, rerr)
 		apiAllPermissions = append(apiAllPermissions, api.PermissionResponse{
 			CreatedAt:   role.CreatedAt.In(time.UTC),
 			CreatedBy:   role.CreatedBy,
 			Description: role.Description,
-			Id:          id.Bytes,
+			Id:          role.ID,
 			Name:        role.Name,
 			UpdatedAt:   role.UpdatedAt.In(time.UTC),
 			UpdatedBy:   role.UpdatedBy,
@@ -793,7 +786,7 @@ func TestServer_UpdatePermissionById_OK(t *testing.T) {
 	updatePermission, err := json.Marshal(api.UpdatePermission{
 		Description: &updatedPermissionDescription,
 	})
-	req, err := http.NewRequest(http.MethodPatch, "/api/v1/access-control/permissions/"+permissionRes.Id.String(), bytes.NewReader(updatePermission))
+	req, err := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/access-control/permissions/%d", permissionRes.Id), bytes.NewReader(updatePermission))
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -825,14 +818,14 @@ func TestServer_UpdatePermissionById_NOK_PermissionNotFound(t *testing.T) {
 		Name:        "admin_permission_1",
 	})
 	//Delete Permission by Id
-	deletePermissionByIdOK(t, loginRes, permissionRes.Id.String())
+	deletePermissionByIdOK(t, loginRes, permissionRes.Id)
 
 	//Update permission by ID
 	updatedPermissionDescription := "permission description Updated"
 	updatePermission, err := json.Marshal(api.UpdatePermission{
 		Description: &updatedPermissionDescription,
 	})
-	req, err := http.NewRequest(http.MethodPatch, "/api/v1/access-control/permissions/"+permissionRes.Id.String(), bytes.NewReader(updatePermission))
+	req, err := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/access-control/permissions/%d", permissionRes.Id), bytes.NewReader(updatePermission))
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -855,10 +848,10 @@ func TestServer_DeletePermissionById_NOK_NotFound(t *testing.T) {
 		Name:        "admin_permission_1",
 	})
 	//Delete Permission by Id
-	deletePermissionByIdOK(t, loginRes, permissionRes.Id.String())
+	deletePermissionByIdOK(t, loginRes, permissionRes.Id)
 
 	//Get Permission By ID
-	getPermissionByIdNotFound(t, loginRes, permissionRes.Id.String())
+	getPermissionByIdNotFound(t, loginRes, permissionRes.Id)
 }
 
 func TestServer_AssignPermissionToRole_OK(t *testing.T) {
@@ -992,10 +985,10 @@ func TestServer_AssignRolesToUser_NOK_RolesDoesntExist(t *testing.T) {
 	assert.NotEmpty(t, user.RoleNames)
 	assert.NotEmpty(t, user.PermissionNames)
 	assignPermission, err := json.Marshal(api.AssignRoleToUser{
-		Roles: []openapi_types.UUID{uuid.New()},
+		Roles: []int64{99999999999},
 	})
 	assert.NoError(t, err)
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%s/roles", user.UserID.String()), bytes.NewReader(assignPermission))
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%d/roles", user.UserID), bytes.NewReader(assignPermission))
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -1039,7 +1032,7 @@ func TestServer_GetRolesOfUser_OK(t *testing.T) {
 	assert.NotEmpty(t, user)
 	assert.NotEmpty(t, user.RoleNames)
 	assert.NotEmpty(t, user.PermissionNames)
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/users/%s/roles", user.UserID.String()), nil)
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/users/%d/roles", user.UserID), nil)
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -1054,7 +1047,7 @@ func TestServer_GetRolesOfUser_OK(t *testing.T) {
 	assert.NotEmpty(t, userWithRoles)
 	assert.NotEmpty(t, userWithRoles.Roles)
 	assert.NotEmpty(t, userWithRoles.Permissions)
-	assert.Equal(t, user.UserID.String(), userWithRoles.Id.String())
+	assert.Equal(t, user.UserID, userWithRoles.Id)
 }
 
 func TestServer_LockUser_OK(t *testing.T) {
@@ -1424,7 +1417,7 @@ func createRole(t *testing.T, res api.LoginSuccessWithJWT, createRole api.Create
 }
 
 func getRoleById(t *testing.T, loginRes api.LoginSuccessWithJWT, roleRes api.RoleResponse) api.RoleResponse {
-	req, err := http.NewRequest(http.MethodGet, "/api/v1/access-control/roles/"+roleRes.Id.String(), nil)
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/access-control/roles/%d", roleRes.Id), nil)
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -1448,8 +1441,8 @@ func getRoleById(t *testing.T, loginRes api.LoginSuccessWithJWT, roleRes api.Rol
 	return roleResponse
 }
 
-func getRoleByIdNotFound(t *testing.T, loginRes api.LoginSuccessWithJWT, id string) {
-	req, err := http.NewRequest(http.MethodGet, "/api/v1/access-control/roles/"+id, nil)
+func getRoleByIdNotFound(t *testing.T, loginRes api.LoginSuccessWithJWT, id int64) {
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/access-control/roles/%d", id), nil)
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -1490,7 +1483,7 @@ func createPermission(t *testing.T, res api.LoginSuccessWithJWT, createPermissio
 }
 
 func getPermissionById(t *testing.T, loginRes api.LoginSuccessWithJWT, permissionRes api.PermissionResponse) {
-	req, err := http.NewRequest(http.MethodGet, "/api/v1/access-control/permissions/"+permissionRes.Id.String(), nil)
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/access-control/permissions/%d", permissionRes.Id), nil)
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -1512,8 +1505,8 @@ func getPermissionById(t *testing.T, loginRes api.LoginSuccessWithJWT, permissio
 	assert.Equal(t, permissionRes.UpdatedBy, permissionResponse.UpdatedBy)
 }
 
-func getPermissionByIdNotFound(t *testing.T, loginRes api.LoginSuccessWithJWT, id string) {
-	req, err := http.NewRequest(http.MethodGet, "/api/v1/access-control/permissions/"+id, nil)
+func getPermissionByIdNotFound(t *testing.T, loginRes api.LoginSuccessWithJWT, id int64) {
+	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/access-control/permissions/%d", id), nil)
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -1526,8 +1519,8 @@ func getPermissionByIdNotFound(t *testing.T, loginRes api.LoginSuccessWithJWT, i
 	assert.NotEmpty(t, recorder.Body.String())
 }
 
-func deleteRoleById(t *testing.T, loginRes api.LoginSuccessWithJWT, id string) {
-	req, err := http.NewRequest(http.MethodDelete, "/api/v1/access-control/roles/"+id, nil)
+func deleteRoleById(t *testing.T, loginRes api.LoginSuccessWithJWT, id int64) {
+	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/access-control/roles/%d", id), nil)
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -1540,8 +1533,8 @@ func deleteRoleById(t *testing.T, loginRes api.LoginSuccessWithJWT, id string) {
 	assert.Empty(t, recorder.Body.String())
 }
 
-func deletePermissionByIdOK(t *testing.T, loginRes api.LoginSuccessWithJWT, id string) {
-	req, err := http.NewRequest(http.MethodDelete, "/api/v1/access-control/permissions/"+id, nil)
+func deletePermissionByIdOK(t *testing.T, loginRes api.LoginSuccessWithJWT, id int64) {
+	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/access-control/permissions/%d", id), nil)
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -1556,10 +1549,10 @@ func deletePermissionByIdOK(t *testing.T, loginRes api.LoginSuccessWithJWT, id s
 
 func assignPermissionToRole(t *testing.T, permissionRes api.PermissionResponse, role api.RoleResponse, loginRes api.LoginSuccessWithJWT) {
 	assignPermission, err := json.Marshal(api.AssignPermission{
-		Ids: []openapi_types.UUID{permissionRes.Id},
+		Ids: []int64{permissionRes.Id},
 	})
 	assert.NoError(t, err)
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/access-control/roles/%s/permissions", role.Id.String()), bytes.NewReader(assignPermission))
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/access-control/roles/%d/permissions", role.Id), bytes.NewReader(assignPermission))
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -1572,7 +1565,7 @@ func assignPermissionToRole(t *testing.T, permissionRes api.PermissionResponse, 
 }
 
 func unassignPermissionToRole(t *testing.T, permissionRes api.PermissionResponse, role api.RoleResponse, loginRes api.LoginSuccessWithJWT) {
-	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/access-control/roles/%s/permissions/%s", role.Id.String(), permissionRes.Id.String()), nil)
+	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/access-control/roles/%d/permissions/%d", role.Id, permissionRes.Id), nil)
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -1591,10 +1584,10 @@ func assignRolesToUser(t *testing.T, role api.RoleResponse, loginRes api.LoginSu
 	assert.NotEmpty(t, user.RoleNames)
 	assert.NotEmpty(t, user.PermissionNames)
 	assignPermission, err := json.Marshal(api.AssignRoleToUser{
-		Roles: []openapi_types.UUID{role.Id},
+		Roles: []int64{role.Id},
 	})
 	assert.NoError(t, err)
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%s/roles", user.UserID.String()), bytes.NewReader(assignPermission))
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%d/roles", user.UserID), bytes.NewReader(assignPermission))
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -1618,7 +1611,7 @@ func removeRolesFromUser(t *testing.T, role api.RoleResponse, loginRes api.Login
 	assert.NotEmpty(t, user.RoleNames)
 	assert.NotEmpty(t, user.PermissionNames)
 	assert.NoError(t, err)
-	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/users/%s/roles/%s", user.UserID.String(), role.Id.String()), nil)
+	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/users/%d/roles/%d", user.UserID, role.Id), nil)
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -1639,7 +1632,7 @@ func removeRolesFromUser(t *testing.T, role api.RoleResponse, loginRes api.Login
 
 func lockUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
 	//Lock endpoint
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%s/lock", user.UserID.String()), nil)
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%d/lock", user.UserID), nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, req)
 	req.Header.Set("Content-Type", "application/json")
@@ -1653,7 +1646,7 @@ func lockUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, login
 
 func unlockUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
 	//Lock endpoint
-	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/users/%s/lock", user.UserID.String()), nil)
+	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/users/%d/lock", user.UserID), nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, req)
 	req.Header.Set("Content-Type", "application/json")
@@ -1667,7 +1660,7 @@ func unlockUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, log
 
 func disableUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
 	//Disable endpoint
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%s/disable", user.UserID.String()), nil)
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%d/disable", user.UserID), nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, req)
 	req.Header.Set("Content-Type", "application/json")
@@ -1681,7 +1674,7 @@ func disableUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, lo
 
 func enableUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
 	//Enable endpoint
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%s/enable", user.UserID.String()), nil)
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%d/enable", user.UserID), nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, req)
 	req.Header.Set("Content-Type", "application/json")

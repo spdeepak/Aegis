@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 
@@ -38,15 +36,14 @@ func TestService_Verify2FALogin_OK(t *testing.T) {
 	req.Header.Set("X-Forwarded-For", "192.168.1.100")
 	ctx.Request = req
 
-	userId := pgtype.UUID{Bytes: uuid.New(), Valid: true}
 	//2FA
 	twoFAQuery := NewMockQuerier(t)
-	twoFAQuery.On("Get2FADetails", ctx, userId).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
+	twoFAQuery.On("Get2FADetails", ctx, 99999999).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
 	otpService := NewService("go-jwt-server", twoFAQuery)
 
 	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-20*time.Second))
 	assert.NoError(t, err)
-	valid, err := otpService.Verify2FALogin(ctx, api.Login2FAParams{XLoginSource: "test", UserAgent: "test"}, userId, passcode)
+	valid, err := otpService.Verify2FALogin(ctx, api.Login2FAParams{XLoginSource: "test", UserAgent: "test"}, 99999999, passcode)
 	assert.NoError(t, err)
 	assert.True(t, valid)
 }
@@ -54,7 +51,7 @@ func TestService_Verify2FALogin_OK(t *testing.T) {
 func TestService_Verify2FALogin_NOK_MinuteOldPasscode(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
-	userId := pgtype.UUID{Bytes: uuid.New(), Valid: true}
+	userId := int64(99999999)
 	query := NewMockQuerier(t)
 	query.On("Get2FADetails", ctx, userId).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
 	otpService := NewService("go-jwt-server", query)
@@ -69,7 +66,7 @@ func TestService_Verify2FALogin_NOK_MinuteOldPasscode(t *testing.T) {
 func TestService_Verify2FALogin_NOK_NotFoundInDB(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
-	userId := pgtype.UUID{Bytes: uuid.New(), Valid: true}
+	userId := int64(99999999)
 	query := NewMockQuerier(t)
 	query.On("Get2FADetails", ctx, userId).Return(Users2fa{}, errors.New("error"))
 	otpService := NewService("go-jwt-server", query)
@@ -84,7 +81,7 @@ func TestService_Verify2FALogin_NOK_NotFoundInDB(t *testing.T) {
 func TestService_Remove2FA_OK(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
-	userId := pgtype.UUID{Bytes: uuid.New(), Valid: true}
+	userId := int64(99999999)
 	query := NewMockQuerier(t)
 	query.On("Get2FADetails", ctx, userId).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
 	query.On("Delete2FA", ctx, Delete2FAParams{UserID: userId, Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}).Return(nil)
@@ -99,7 +96,7 @@ func TestService_Remove2FA_OK(t *testing.T) {
 func TestService_Remove2FA_NOK_MinuteOldPasscode(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
-	userId := pgtype.UUID{Bytes: uuid.New(), Valid: true}
+	userId := int64(99999999)
 	query := NewMockQuerier(t)
 	query.On("Get2FADetails", ctx, userId).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
 	otpService := NewService("go-jwt-server", query)
@@ -113,7 +110,7 @@ func TestService_Remove2FA_NOK_MinuteOldPasscode(t *testing.T) {
 func TestService_Remove2FA_NOK_NotFoundInDB(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
-	userId := pgtype.UUID{Bytes: uuid.New(), Valid: true}
+	userId := int64(99999999)
 	query := NewMockQuerier(t)
 	query.On("Get2FADetails", ctx, userId).Return(Users2fa{}, errors.New("error"))
 	otpService := NewService("go-jwt-server", query)
@@ -127,7 +124,7 @@ func TestService_Remove2FA_NOK_NotFoundInDB(t *testing.T) {
 func TestService_Remove2FA_NOK_DeleteInDB(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
-	userId := pgtype.UUID{Bytes: uuid.New(), Valid: true}
+	userId := int64(99999999)
 	query := NewMockQuerier(t)
 	query.On("Get2FADetails", ctx, userId).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
 	query.On("Delete2FA", ctx, Delete2FAParams{UserID: userId, Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}).Return(errors.New("error"))

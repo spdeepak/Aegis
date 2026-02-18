@@ -8,8 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
@@ -19,7 +17,7 @@ import (
 func TestService_GetOrCreateSecret_OK_SecretInDB(t *testing.T) {
 	query := NewMockQuerier(t)
 	jwtSecret := JwtSecret{
-		ID:         pgtype.UUID{Bytes: uuid.New(), Valid: true},
+		ID:         1,
 		Secret:     "pI103TBwAF5w1MaKGQ7jCNawt4xoxxQdA0REzlFkzTUOOUc8OQ40FzrM",
 		SecretType: "default",
 		IsValid:    true,
@@ -57,7 +55,7 @@ func TestService_GetOrCreateSecret_NOK_SecretInDB_MasterKeyNotSet(t *testing.T) 
 	if os.Getenv("FATAL_TEST") == "1" {
 		query := NewMockQuerier(t)
 		jwtSecret := JwtSecret{
-			ID:         pgtype.UUID{Bytes: uuid.New(), Valid: true},
+			ID:         1,
 			Secret:     "pI103TBwAF5w1MaKGQ7jCNawt4xoxxQdA0REzlFkzTUOOUc8OQ40FzrM",
 			SecretType: "default",
 			IsValid:    true,
@@ -79,7 +77,7 @@ func TestService_GetOrCreateSecret_NOK_SecretInDB_MasterKeyTooLong(t *testing.T)
 	if os.Getenv("FATAL_TEST") == "1" {
 		query := NewMockQuerier(t)
 		jwtSecret := JwtSecret{
-			ID:         pgtype.UUID{Bytes: uuid.New(), Valid: true},
+			ID:         1,
 			Secret:     "pI103TBwAF5w1MaKGQ7jCNawt4xoxxQdA0REzlFkzTUOOUc8OQ40FzrM",
 			SecretType: "default",
 			IsValid:    true,

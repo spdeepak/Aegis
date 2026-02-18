@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
@@ -473,7 +472,6 @@ func TestService_ListActiveSessions_NOK_DBQueryFail(t *testing.T) {
 func TestService_GenerateTempToken_OK(t *testing.T) {
 	secret := "JWT_$€CR€T"
 	tokenService := NewService(nil, []byte(secret), "")
-	userId := uuid.New()
 
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
@@ -483,7 +481,7 @@ func TestService_GenerateTempToken_OK(t *testing.T) {
 	req.Header.Set("X-Forwarded-For", "192.168.1.100")
 	ctx.Request = req
 
-	response, err := tokenService.GenerateTempToken(ctx, userId)
+	response, err := tokenService.GenerateTempToken(ctx, 99999999)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, response)

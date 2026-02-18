@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/spdeepak/go-jwt-server/api"
@@ -118,7 +117,7 @@ func TestService_DeletePermission(t *testing.T) {
 		ctx, _ := gin.CreateTestContext(w)
 		ctx.Set("User-Email", "first.last@example.com")
 		permissionService := NewService(permissionStorage)
-		err := permissionService.DeletePermissionById(ctx, uuid.New())
+		err := permissionService.DeletePermissionById(ctx, 999999999)
 		assert.NoError(t, err)
 	})
 }
@@ -179,7 +178,7 @@ func TestService_GetPermissionById(t *testing.T) {
 		ctx, _ := gin.CreateTestContext(w)
 		ctx.Set("User-Email", "first.last@example.com")
 		permissionService := NewService(permissionStorage)
-		permission, err := permissionService.GetPermissionById(ctx, uuid.New())
+		permission, err := permissionService.GetPermissionById(ctx, 999999999)
 		assert.Error(t, err)
 		assert.Empty(t, permission)
 	})
@@ -217,7 +216,7 @@ func TestService_UpdatePermissionById(t *testing.T) {
 
 		updatedPermissionDescription := "changed permission description"
 		updatedName := "updated_permission_name"
-		permission, err := permissionService.UpdatePermissionById(ctx, uuid.New(), api.UpdatePermissionByIdParams{}, api.UpdatePermission{Description: &updatedPermissionDescription, Name: &updatedName})
+		permission, err := permissionService.UpdatePermissionById(ctx, 999999999, api.UpdatePermissionByIdParams{}, api.UpdatePermission{Description: &updatedPermissionDescription, Name: &updatedName})
 		assert.Error(t, err)
 		assert.Empty(t, permission)
 	})

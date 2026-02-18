@@ -9,9 +9,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/spdeepak/go-jwt-server/api"
@@ -23,7 +20,6 @@ import (
 
 var roleStorage Querier
 var permissionStorage permissionsRepo.Querier
-var dba *pgxpool.Pool
 var dbConfig = config.PostgresConfig{
 	Host:              "localhost",
 	Port:              "5432",
@@ -127,7 +123,7 @@ func TestService_DeleteRole(t *testing.T) {
 		ctx, _ := gin.CreateTestContext(w)
 		ctx.Set("User-Email", "first.last@example.com")
 		roleService := NewService(roleStorage)
-		err := roleService.DeleteRoleById(ctx, uuid.New())
+		err := roleService.DeleteRoleById(ctx, 999999999)
 		assert.NoError(t, err)
 	})
 }
@@ -190,7 +186,7 @@ func TestService_GetRoleById(t *testing.T) {
 		ctx, _ := gin.CreateTestContext(w)
 		ctx.Set("User-Email", "first.last@example.com")
 		roleService := NewService(roleStorage)
-		role, err := roleService.GetRoleById(ctx, uuid.New())
+		role, err := roleService.GetRoleById(ctx, 999999999)
 		assert.Error(t, err)
 		assert.Empty(t, role)
 	})
@@ -229,7 +225,7 @@ func TestService_UpdateRoleById(t *testing.T) {
 
 		updatedRoleDescription := "changed role description"
 		updatedName := "updated_role_name"
-		role, err := roleService.UpdateRoleById(ctx, uuid.New(), "first.last@example.com", api.UpdateRoleByIdParams{}, api.UpdateRole{Description: &updatedRoleDescription, Name: &updatedName})
+		role, err := roleService.UpdateRoleById(ctx, 999999999, "first.last@example.com", api.UpdateRoleByIdParams{}, api.UpdateRole{Description: &updatedRoleDescription, Name: &updatedName})
 		assert.Error(t, err)
 		assert.Empty(t, role)
 	})
@@ -254,7 +250,7 @@ func TestService_AssignPermissionToRole(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, permission)
 
-		err = roleService.AssignPermissionToRole(ctx, createdRole.Id, api.AssignPermissionToRoleParams{}, api.AssignPermission{Ids: []openapi_types.UUID{permission.Id}}, "first.last@example.com")
+		err = roleService.AssignPermissionToRole(ctx, createdRole.Id, api.AssignPermissionToRoleParams{}, api.AssignPermission{Ids: []int64{permission.Id}}, "first.last@example.com")
 		assert.NoError(t, err)
 	})
 }
@@ -278,7 +274,7 @@ func TestService_UnassignPermissionToRole(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotEmpty(t, permission)
 
-		err = roleService.AssignPermissionToRole(ctx, createdRole.Id, api.AssignPermissionToRoleParams{}, api.AssignPermission{Ids: []openapi_types.UUID{permission.Id}}, "first.last@example.com")
+		err = roleService.AssignPermissionToRole(ctx, createdRole.Id, api.AssignPermissionToRoleParams{}, api.AssignPermission{Ids: []int64{permission.Id}}, "first.last@example.com")
 		assert.NoError(t, err)
 		err = roleService.UnassignPermissionFromRole(ctx, createdRole.Id, permission.Id)
 		assert.NoError(t, err)
@@ -307,7 +303,7 @@ func TestService_ListRolesAndItsPermissions(t *testing.T) {
 				permission, err := permissionsService.CreateNewPermission(ctx, api.CreateNewPermissionParams{}, api.CreatePermission{Description: "permission description", Name: fmt.Sprintf("role::create_%d_%d", num, pn)})
 				assert.NoError(t, err)
 				assert.NotEmpty(t, permission)
-				err = roleService.AssignPermissionToRole(ctx, createdRole.Id, api.AssignPermissionToRoleParams{}, api.AssignPermission{Ids: []openapi_types.UUID{permission.Id}}, "first.last@example.com")
+				err = roleService.AssignPermissionToRole(ctx, createdRole.Id, api.AssignPermissionToRoleParams{}, api.AssignPermission{Ids: []int64{permission.Id}}, "first.last@example.com")
 				assert.NoError(t, err)
 			}
 		}

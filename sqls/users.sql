@@ -151,7 +151,7 @@ ON CONFLICT DO NOTHING;
 -- name: AssignPermissionToUser :exec
 INSERT INTO user_permissions (user_id, permission_id, created_at, created_by)
 SELECT sqlc.arg('user_id'),
-       unnest(sqlc.arg('permission_id')::uuid[]),
+       unnest(sqlc.arg('permission_id')::bigserial[]),
        now(),
        sqlc.arg('createdBy')
 ON CONFLICT DO NOTHING;

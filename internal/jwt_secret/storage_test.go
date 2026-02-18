@@ -8,8 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,7 +46,7 @@ func TestStorage_getDefaultEncryptedSecret_OK(t *testing.T) {
 	query := NewMockQuerier(t)
 	ctx := context.Background()
 	jwtSecret := JwtSecret{
-		ID:         pgtype.UUID{Bytes: uuid.New(), Valid: true},
+		ID:         1,
 		Secret:     "random_secret",
 		SecretType: "default",
 		IsValid:    true,
