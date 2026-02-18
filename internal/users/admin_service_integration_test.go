@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/spdeepak/go-jwt-server/api"
@@ -85,7 +84,7 @@ func lockUser(t *testing.T, ctx context.Context, err error, admin_service AdminS
 }
 
 func unlockUser(t *testing.T, err error, admin_service AdminService, users User, userQuery *Queries) {
-	ctx := context.WithValue(context.Background(), "User-ID", uuid.New())
+	ctx := context.WithValue(context.Background(), "User-ID", int64(99999999))
 	ctx = context.WithValue(ctx, "user-ip", "127.0.0.1")
 	err = admin_service.UnlockUserById(ctx, users.ID, api.UnlockUserParams{UserAgent: "service-test"})
 	assert.NoError(t, err)
@@ -157,7 +156,7 @@ func TestAdminService_EnableUserById_NOK(t *testing.T) {
 }
 
 func disableUser(t *testing.T, err error, admin_service AdminService, users User, userQuery *Queries) {
-	ctx := context.WithValue(context.Background(), "User-ID", uuid.New())
+	ctx := context.WithValue(context.Background(), "User-ID", int64(99999999))
 	ctx = context.WithValue(ctx, "user-ip", "127.0.0.1")
 	err = admin_service.DisableUserById(ctx, users.ID, api.DisableUserParams{UserAgent: "service-test"})
 	assert.NoError(t, err)
@@ -168,7 +167,7 @@ func disableUser(t *testing.T, err error, admin_service AdminService, users User
 }
 
 func enableUser(t *testing.T, err error, admin_service AdminService, users User, userQuery *Queries) {
-	ctx := context.WithValue(context.Background(), "User-ID", uuid.New())
+	ctx := context.WithValue(context.Background(), "User-ID", int64(99999999))
 	ctx = context.WithValue(ctx, "user-ip", "127.0.0.1")
 	err = admin_service.EnableUserById(ctx, users.ID, api.EnableUserParams{UserAgent: "service-test"})
 	assert.NoError(t, err)

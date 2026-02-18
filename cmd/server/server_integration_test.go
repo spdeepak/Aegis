@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1074,7 +1073,7 @@ func TestServer_LockUser_NOK(t *testing.T) {
 	//Login
 	loginRes := loginSuperAdmin(t)
 	//Lock endpoint
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%s/lock", uuid.NewString()), nil)
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%d/lock", int64(99999999)), nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, req)
 	req.Header.Set("Content-Type", "application/json")
@@ -1116,7 +1115,7 @@ func TestServer_UnlockUser_NOK(t *testing.T) {
 	//Login
 	loginRes := loginSuperAdmin(t)
 	//Unlock endpoint
-	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/users/%s/lock", uuid.NewString()), nil)
+	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/users/%d/lock", int64(99999999)), nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, req)
 	req.Header.Set("Content-Type", "application/json")
@@ -1152,7 +1151,7 @@ func TestServer_DisableUser_NOK(t *testing.T) {
 	//Login
 	loginRes := loginSuperAdmin(t)
 	//Disable endpoint
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%s/disable", uuid.NewString()), nil)
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%d/disable", int64(99999999)), nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, req)
 	req.Header.Set("Content-Type", "application/json")
@@ -1194,7 +1193,7 @@ func TestServer_EnableUser_NOK(t *testing.T) {
 	//Login
 	loginRes := loginSuperAdmin(t)
 	//Enable endpoint
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%s/enable", uuid.NewString()), nil)
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%d/enable", int64(99999999)), nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, req)
 	req.Header.Set("Content-Type", "application/json")
@@ -1409,7 +1408,6 @@ func createRole(t *testing.T, res api.LoginSuccessWithJWT, createRole api.Create
 	assert.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &roleResponse))
 	assert.Equal(t, createRole.Description, roleResponse.Description)
 	assert.Equal(t, createRole.Name, roleResponse.Name)
-	assert.IsType(t, uuid.UUID{}, roleResponse.Id)
 	assert.Equal(t, "admin@localhost.com", roleResponse.CreatedBy)
 	assert.NotNil(t, roleResponse.CreatedAt.In(time.UTC))
 
@@ -1475,7 +1473,6 @@ func createPermission(t *testing.T, res api.LoginSuccessWithJWT, createPermissio
 	assert.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &permissionResponse))
 	assert.Equal(t, createPermission.Description, permissionResponse.Description)
 	assert.Equal(t, createPermission.Name, permissionResponse.Name)
-	assert.IsType(t, uuid.UUID{}, permissionResponse.Id)
 	assert.Equal(t, "admin@localhost.com", permissionResponse.CreatedBy)
 	assert.NotNil(t, permissionResponse.CreatedAt.In(time.UTC))
 
