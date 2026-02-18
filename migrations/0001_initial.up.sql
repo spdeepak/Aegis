@@ -1,7 +1,7 @@
 -- JWT Secrets
 CREATE TABLE IF NOT EXISTS jwt_secrets
 (
-    id UUID PRIMARY KEY DEFAULT uuidv7(),
+    id BIGSERIAL PRIMARY KEY,
     secret      TEXT        NOT NULL,
     secret_type TEXT        NOT NULL DEFAULT 'default',
     is_valid    BOOLEAN     NOT NULL default TRUE,
@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS jwt_secrets
 -- Users
 CREATE TABLE IF NOT EXISTS users
 (
-    id         UUID PRIMARY KEY     DEFAULT uuidv7(),
+    id BIGSERIAL PRIMARY KEY,
     email          TEXT        NOT NULL UNIQUE,
     first_name     TEXT        NOT NULL,
     last_name      TEXT        NOT NULL,
@@ -30,7 +30,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users (email);
 -- Password History
 CREATE TABLE IF NOT EXISTS users_password
 (
-    user_id    UUID        NOT NULL,
+    user_id BIGSERIAL NOT NULL,
     password   TEXT        NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
@@ -39,8 +39,8 @@ CREATE TABLE IF NOT EXISTS users_password
 -- 2FA
 CREATE TABLE IF NOT EXISTS users_2fa
 (
-    id         UUID PRIMARY KEY     DEFAULT uuidv7(),
-    user_id    UUID        NOT NULL,
+    id      BIGSERIAL PRIMARY KEY,
+    user_id BIGSERIAL NOT NULL,
     secret     TEXT        NOT NULL,
     url        TEXT        NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -55,7 +55,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS unique_active_totp_per_user
 -- Roles
 CREATE TABLE IF NOT EXISTS roles
 (
-    id         UUID PRIMARY KEY     DEFAULT uuidv7(),
+    id BIGSERIAL PRIMARY KEY,
     name        TEXT        NOT NULL UNIQUE, -- e.g., "admin", "user"
     description TEXT        NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS roles
 -- Permissions
 CREATE TABLE IF NOT EXISTS permissions
 (
-    id         UUID PRIMARY KEY     DEFAULT uuidv7(),
+    id BIGSERIAL PRIMARY KEY,
     name        TEXT        NOT NULL UNIQUE, -- e.g., "user:read"
     description TEXT        NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -80,8 +80,8 @@ CREATE TABLE IF NOT EXISTS permissions
 -- Role → Permissions
 CREATE TABLE IF NOT EXISTS role_permissions
 (
-    role_id       UUID        NOT NULL,
-    permission_id UUID        NOT NULL,
+    role_id       BIGSERIAL NOT NULL,
+    permission_id BIGSERIAL NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_by    TEXT        NOT NULL,
     PRIMARY KEY (role_id, permission_id),
@@ -95,8 +95,8 @@ CREATE INDEX IF NOT EXISTS idx_role_permissions_permission_id ON role_permission
 -- User → Roles
 CREATE TABLE IF NOT EXISTS user_roles
 (
-    user_id    UUID        NOT NULL,
-    role_id    UUID        NOT NULL,
+    user_id BIGSERIAL NOT NULL,
+    role_id BIGSERIAL NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_by TEXT        NOT NULL,
     PRIMARY KEY (user_id, role_id),
@@ -110,8 +110,8 @@ CREATE INDEX IF NOT EXISTS idx_user_roles_role_id ON user_roles (role_id);
 -- User → Permissions (optional overrides)
 CREATE TABLE IF NOT EXISTS user_permissions
 (
-    user_id       UUID        NOT NULL,
-    permission_id UUID        NOT NULL,
+    user_id       BIGSERIAL NOT NULL,
+    permission_id BIGSERIAL NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_by    TEXT        NOT NULL,
     PRIMARY KEY (user_id, permission_id),
@@ -128,8 +128,8 @@ CREATE TABLE IF NOT EXISTS tokens
     token              TEXT PRIMARY KEY,
     refresh_token      TEXT        NOT NULL,
     issued_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
-    token_expires_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
-    refresh_expires_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    token_expires_at   TIMESTAMPTZ NOT NULL,
+    refresh_expires_at TIMESTAMPTZ NOT NULL,
     revoked            BOOLEAN     NOT NULL DEFAULT FALSE,
     revoked_at         TIMESTAMPTZ,
     email              TEXT        NOT NULL,
@@ -148,9 +148,9 @@ CREATE INDEX IF NOT EXISTS idx_refresh_valid ON tokens (refresh_token, ip_addres
 -- User Security Actions
 CREATE TABLE IF NOT EXISTS user_security_actions
 (
-    id          UUID PRIMARY KEY     DEFAULT uuidv7(),
-    user_id     UUID        NOT NULL,
-    actor_id    UUID        NOT NULL,
+    id       BIGSERIAL PRIMARY KEY,
+    user_id  BIGSERIAL NOT NULL,
+    actor_id BIGSERIAL NOT NULL,
     action      TEXT        NOT NULL,
     ip_address  TEXT        NOT NULL,
     user_agent  TEXT        NOT NULL,

@@ -17,18 +17,12 @@ import (
 	"github.com/spdeepak/go-jwt-server/config"
 	"github.com/spdeepak/go-jwt-server/internal/db"
 	"github.com/spdeepak/go-jwt-server/internal/jwt_secret"
-	jwt_secretRepo "github.com/spdeepak/go-jwt-server/internal/jwt_secret/repository"
 	"github.com/spdeepak/go-jwt-server/internal/logging"
 	"github.com/spdeepak/go-jwt-server/internal/permissions"
-	permissionsRepo "github.com/spdeepak/go-jwt-server/internal/permissions/repository"
 	"github.com/spdeepak/go-jwt-server/internal/roles"
-	roleRepo "github.com/spdeepak/go-jwt-server/internal/roles/repository"
 	"github.com/spdeepak/go-jwt-server/internal/tokens"
-	tokenRepo "github.com/spdeepak/go-jwt-server/internal/tokens/repository"
 	"github.com/spdeepak/go-jwt-server/internal/twoFA"
-	twoFARepo "github.com/spdeepak/go-jwt-server/internal/twoFA/repository"
 	"github.com/spdeepak/go-jwt-server/internal/users"
-	userRepo "github.com/spdeepak/go-jwt-server/internal/users/repository"
 	"github.com/spdeepak/go-jwt-server/middleware"
 )
 
@@ -38,30 +32,30 @@ func main() {
 
 	err := db.RunMigrations(cfg.Postgres)
 	if err != nil {
-		slog.Error("Failed to run migrations", slog.Any("error", err))
+		slog.Error("Failed to run migrations", "error", err)
 	}
 	dbConnection := db.Connect(cfg.Postgres)
 
 	//JWT SecretKey
-	jwtSecretRepository := jwt_secretRepo.New(dbConnection)
+	jwtSecretRepository := jwt_secret.New(dbConnection)
 	jwtSecretStorage := jwt_secret.NewStorage(jwtSecretRepository)
 	//JWT Token
-	tokenRepository := tokenRepo.New(dbConnection)
+	tokenRepository := tokens.New(dbConnection)
 	tokenService := tokens.NewService(tokenRepository, jwt_secret.GetOrCreateSecret(cfg.Token, jwtSecretStorage), cfg.Token.Issuer)
 	//2FA
-	twoFAQuery := twoFARepo.New(dbConnection)
+	twoFAQuery := twoFA.New(dbConnection)
 	twoFAService := twoFA.NewService(cfg.TwoFA.AppName, twoFAQuery)
 	//Users
-	userRepository := userRepo.New(dbConnection)
+	userRepository := users.New(dbConnection)
 	userService := users.NewService(userRepository, twoFAService, tokenService)
 	//Roles
-	roleQuery := roleRepo.New(dbConnection)
+	roleQuery := roles.New(dbConnection)
 	roleService := roles.NewService(roleQuery)
 	//Permissions
-	permissionQuery := permissionsRepo.New(dbConnection)
+	permissionQuery := permissions.New(dbConnection)
 	permissionsService := permissions.NewService(permissionQuery)
 	//Admin
-	adminQuery := userRepo.New(dbConnection)
+	adminQuery := users.New(dbConnection)
 	adminService := users.NewAdminService(adminQuery)
 
 	//oapi-codegen implementation handler
@@ -69,7 +63,7 @@ func main() {
 
 	swagger, err := api.GetSwagger()
 	if err != nil {
-		slog.Error(fmt.Sprintf("Error loading swagger spec\n: %v", os.Stderr), slog.Any("error", err))
+		slog.Error(fmt.Sprintf("Error loading swagger spec\n: %v", os.Stderr), "error", err)
 		os.Exit(1)
 	}
 	swagger.Servers = nil

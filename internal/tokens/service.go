@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -14,7 +15,6 @@ import (
 
 	"github.com/spdeepak/go-jwt-server/api"
 	"github.com/spdeepak/go-jwt-server/internal/error"
-	"github.com/spdeepak/go-jwt-server/internal/tokens/repository"
 )
 
 const (
@@ -26,7 +26,7 @@ type (
 	service struct {
 		secret            []byte
 		issuer            string
-		tokenRepository   repository.Querier
+		tokenRepository   Querier
 		bearerExpiryTime  time.Duration
 		refreshExpiryTime time.Duration
 	}
@@ -38,9 +38,9 @@ type (
 		// ValidateRefreshToken verifies if a given refresh token is valid
 		ValidateRefreshToken(ctx context.Context, clientIP string, params api.RefreshParams, refreshToken string) (jwt.MapClaims, error)
 		// GenerateNewTokenPair Generates a token for a given user
-		GenerateNewTokenPair(ctx context.Context, clientIP string, params TokenParams, user repository.User, roles, permissions []string) (api.LoginSuccessWithJWT, error)
+		GenerateNewTokenPair(ctx context.Context, clientIP string, params TokenParams, user User, roles, permissions []string) (api.LoginSuccessWithJWT, error)
 		// RefreshAndInvalidateToken Invalidates the given refresh token and generates a new token for the given user
-		RefreshAndInvalidateToken(ctx context.Context, clientIP string, params TokenParams, refresh api.Refresh, user repository.User, roles, permissions []string) (api.LoginSuccessWithJWT, error)
+		RefreshAndInvalidateToken(ctx context.Context, clientIP string, params TokenParams, refresh api.Refresh, user User, roles, permissions []string) (api.LoginSuccessWithJWT, error)
 		// RevokeRefreshToken marks a refresh token as revoked
 		RevokeRefreshToken(ctx context.Context, params api.RevokeRefreshTokenParams, refresh api.RevokeCurrentSession) error
 		// RevokeAllTokens marks all refresh tokens of a give user
@@ -48,11 +48,11 @@ type (
 		// ListActiveSessions list of all active sessions
 		ListActiveSessions(ctx context.Context, email string) ([]api.GetAllSessionResponse, error)
 		// GenerateTempToken list of all active sessions
-		GenerateTempToken(ctx context.Context, userId uuid.UUID) (api.LoginRequires2FA, error)
+		GenerateTempToken(ctx context.Context, userId int64) (api.LoginRequires2FA, error)
 	}
 )
 
-func NewService(tokenRepository repository.Querier, secret []byte, issuer string) Service {
+func NewService(tokenRepository Querier, secret []byte, issuer string) Service {
 	return &service{
 		secret:            secret,
 		issuer:            issuer,
@@ -78,7 +78,7 @@ func (s *service) ValidateRefreshToken(ctx context.Context, clientIP string, par
 	if err != nil {
 		return nil, err
 	}
-	refreshValidParams := repository.IsRefreshValidParams{
+	refreshValidParams := IsRefreshValidParams{
 		RefreshToken: hash(refreshToken),
 		IpAddress:    clientIP,
 		UserAgent:    params.UserAgent,
@@ -93,7 +93,7 @@ func (s *service) ValidateRefreshToken(ctx context.Context, clientIP string, par
 	return claims, nil
 }
 
-func (s *service) GenerateNewTokenPair(ctx context.Context, clientIP string, params TokenParams, user repository.User, roles, permissions []string) (api.LoginSuccessWithJWT, error) {
+func (s *service) GenerateNewTokenPair(ctx context.Context, clientIP string, params TokenParams, user User, roles, permissions []string) (api.LoginSuccessWithJWT, error) {
 	now := time.Now()
 	accessClaims := s.bearerTokenClaims(user, now, roles, permissions)
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
@@ -108,7 +108,7 @@ func (s *service) GenerateNewTokenPair(ctx context.Context, clientIP string, par
 	if err != nil {
 		return api.LoginSuccessWithJWT{}, httperror.NewWithMetadata(httperror.UndefinedErrorCode, err.Error())
 	}
-	saveTokenParams := repository.SaveTokenParams{
+	saveTokenParams := SaveTokenParams{
 		Token:            hash(signedAccessToken),
 		RefreshToken:     hash(signedRefreshToken),
 		TokenExpiresAt:   accessClaims.ExpiresAt.Time,
@@ -130,7 +130,7 @@ func (s *service) GenerateNewTokenPair(ctx context.Context, clientIP string, par
 	}, nil
 }
 
-func (s *service) RefreshAndInvalidateToken(ctx context.Context, clientIP string, params TokenParams, refresh api.Refresh, user repository.User, roles, permissions []string) (api.LoginSuccessWithJWT, error) {
+func (s *service) RefreshAndInvalidateToken(ctx context.Context, clientIP string, params TokenParams, refresh api.Refresh, user User, roles, permissions []string) (api.LoginSuccessWithJWT, error) {
 	now := time.Now()
 	accessClaims := s.bearerTokenClaims(user, now, roles, permissions)
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
@@ -146,7 +146,7 @@ func (s *service) RefreshAndInvalidateToken(ctx context.Context, clientIP string
 		return api.LoginSuccessWithJWT{}, httperror.NewWithMetadata(httperror.UndefinedErrorCode, err.Error())
 	}
 
-	refreshAndInvalidateTokenParams := repository.RefreshAndInvalidateTokenParams{
+	refreshAndInvalidateTokenParams := RefreshAndInvalidateTokenParams{
 		NewToken:         hash(signedAccessToken),
 		NewRefreshToken:  hash(signedRefreshToken),
 		TokenExpiresAt:   accessClaims.ExpiresAt.Time,
@@ -209,7 +209,7 @@ func (s *service) ListActiveSessions(ctx context.Context, email string) ([]api.G
 	return activeSessionResponse, nil
 }
 
-func (s *service) GenerateTempToken(ctx context.Context, userId uuid.UUID) (api.LoginRequires2FA, error) {
+func (s *service) GenerateTempToken(ctx context.Context, userId int64) (api.LoginRequires2FA, error) {
 	now := time.Now()
 	tempTokenClaims := s.tempTokenClaims(userId, now)
 	tempToken := jwt.NewWithClaims(jwt.SigningMethodHS256, tempTokenClaims)
@@ -223,13 +223,13 @@ func (s *service) GenerateTempToken(ctx context.Context, userId uuid.UUID) (api.
 	}, nil
 }
 
-func (s *service) tempTokenClaims(userId uuid.UUID, now time.Time) TokenClaims {
+func (s *service) tempTokenClaims(userId int64, now time.Time) TokenClaims {
 	return TokenClaims{
 		Type:      "2FA",
 		AuthLevel: "pre-2fa",
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    s.issuer,
-			Subject:   userId.String(),
+			Subject:   strconv.FormatInt(userId, 10),
 			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(5 * time.Minute)},
 			NotBefore: &jwt.NumericDate{Time: now},
 			IssuedAt:  &jwt.NumericDate{Time: now},
@@ -238,7 +238,7 @@ func (s *service) tempTokenClaims(userId uuid.UUID, now time.Time) TokenClaims {
 	}
 }
 
-func (s *service) bearerTokenClaims(user repository.User, now time.Time, roles, permissions []string) TokenClaims {
+func (s *service) bearerTokenClaims(user User, now time.Time, roles, permissions []string) TokenClaims {
 	return TokenClaims{
 		Name:        user.FirstName + " " + user.LastName,
 		Email:       user.Email,
@@ -249,7 +249,7 @@ func (s *service) bearerTokenClaims(user repository.User, now time.Time, roles, 
 		Type:        "Bearer",
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    s.issuer,
-			Subject:   user.ID.String(),
+			Subject:   strconv.FormatInt(user.ID, 10),
 			ExpiresAt: &jwt.NumericDate{Time: now.Add(s.bearerExpiryTime)},
 			NotBefore: &jwt.NumericDate{Time: now},
 			IssuedAt:  &jwt.NumericDate{Time: now},
@@ -258,13 +258,13 @@ func (s *service) bearerTokenClaims(user repository.User, now time.Time, roles, 
 	}
 }
 
-func (s *service) refreshTokenClaims(user repository.User, now time.Time) TokenClaims {
+func (s *service) refreshTokenClaims(user User, now time.Time) TokenClaims {
 	return TokenClaims{
 		Email: user.Email,
 		Type:  "Refresh",
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    s.issuer,
-			Subject:   user.ID.String(),
+			Subject:   strconv.FormatInt(user.ID, 10),
 			ExpiresAt: &jwt.NumericDate{Time: now.Add(s.refreshExpiryTime)},
 			NotBefore: &jwt.NumericDate{Time: now},
 			IssuedAt:  &jwt.NumericDate{Time: now},

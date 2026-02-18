@@ -8,16 +8,14 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/spdeepak/go-jwt-server/api"
 	"github.com/spdeepak/go-jwt-server/config"
 	"github.com/spdeepak/go-jwt-server/internal/db"
-	"github.com/spdeepak/go-jwt-server/internal/permissions/repository"
 )
 
-var permissionStorage repository.Querier
+var permissionStorage Querier
 var dbConfig = config.PostgresConfig{
 	Host:              "localhost",
 	Port:              "5432",
@@ -38,7 +36,7 @@ var dbConfig = config.PostgresConfig{
 
 func TestMain(m *testing.M) {
 	dbConnection := db.Connect(dbConfig)
-	permissionStorage = repository.New(dbConnection)
+	permissionStorage = New(dbConnection)
 	// Run all tests
 	truncateTables()
 	code := m.Run()
@@ -119,7 +117,7 @@ func TestService_DeletePermission(t *testing.T) {
 		ctx, _ := gin.CreateTestContext(w)
 		ctx.Set("User-Email", "first.last@example.com")
 		permissionService := NewService(permissionStorage)
-		err := permissionService.DeletePermissionById(ctx, uuid.New())
+		err := permissionService.DeletePermissionById(ctx, 999999999)
 		assert.NoError(t, err)
 	})
 }
@@ -180,7 +178,7 @@ func TestService_GetPermissionById(t *testing.T) {
 		ctx, _ := gin.CreateTestContext(w)
 		ctx.Set("User-Email", "first.last@example.com")
 		permissionService := NewService(permissionStorage)
-		permission, err := permissionService.GetPermissionById(ctx, uuid.New())
+		permission, err := permissionService.GetPermissionById(ctx, 999999999)
 		assert.Error(t, err)
 		assert.Empty(t, permission)
 	})
@@ -218,7 +216,7 @@ func TestService_UpdatePermissionById(t *testing.T) {
 
 		updatedPermissionDescription := "changed permission description"
 		updatedName := "updated_permission_name"
-		permission, err := permissionService.UpdatePermissionById(ctx, uuid.New(), api.UpdatePermissionByIdParams{}, api.UpdatePermission{Description: &updatedPermissionDescription, Name: &updatedName})
+		permission, err := permissionService.UpdatePermissionById(ctx, 999999999, api.UpdatePermissionByIdParams{}, api.UpdatePermission{Description: &updatedPermissionDescription, Name: &updatedName})
 		assert.Error(t, err)
 		assert.Empty(t, permission)
 	})

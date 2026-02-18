@@ -4,11 +4,11 @@ import (
 	"errors"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/spdeepak/go-jwt-server/internal/error"
@@ -126,7 +126,7 @@ func JWTAuthMiddleware(secret []byte, skipPaths []string, issuer string) gin.Han
 			})
 			return
 		}
-		userId, err := uuid.Parse(claims.Subject)
+		userId, err := strconv.ParseInt(claims.Subject, 10, 64)
 		if err != nil {
 			authFailures.WithLabelValues("RequiredClaimsMissing").Inc()
 			c.AbortWithStatusJSON(http.StatusUnauthorized, httperror.HttpError{
@@ -196,4 +196,28 @@ func (a *authPolicy) evalAnyOf(userRoles []string, userPerms []string, isSelf bo
 
 	// None matched
 	return false
+}
+
+func (a *authPolicy) evalAllOf(userRoles []string, userPerms []string, isSelf bool) bool {
+	// Check self requirement
+	if a.Self && !isSelf {
+		return false
+	}
+
+	// Check all required roles
+	if a.AllOf.Roles != nil && len(a.AllOf.Roles) > 0 {
+		if !util.HasAll(a.AllOf.Roles, userRoles) {
+			return false
+		}
+	}
+
+	// Check all required permissions
+	if a.AllOf.Permissions != nil && len(a.AllOf.Permissions) > 0 {
+		if !util.HasAll(a.AllOf.Permissions, userPerms) {
+			return false
+		}
+	}
+
+	// All checks passed
+	return true
 }

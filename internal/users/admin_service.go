@@ -3,37 +3,34 @@ package users
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
 	"github.com/spdeepak/go-jwt-server/api"
 	httperror "github.com/spdeepak/go-jwt-server/internal/error"
-	"github.com/spdeepak/go-jwt-server/internal/users/repository"
-	"github.com/spdeepak/go-jwt-server/util"
 )
 
 type (
 	adminService struct {
-		storage repository.Querier
+		storage Querier
 	}
 	AdminService interface {
 		GetListOfUsers(ctx context.Context, params api.GetListOfUsersParams) ([]api.UserDetails, error)
-		LockUserById(ctx context.Context, id uuid.UUID, params api.LockUserParams) error
-		UnlockUserById(ctx context.Context, id uuid.UUID, params api.UnlockUserParams) error
-		DisableUserById(ctx context.Context, id uuid.UUID, params api.DisableUserParams) error
-		EnableUserById(ctx context.Context, id uuid.UUID, params api.EnableUserParams) error
+		LockUserById(ctx context.Context, id int64, params api.LockUserParams) error
+		UnlockUserById(ctx context.Context, id int64, params api.UnlockUserParams) error
+		DisableUserById(ctx context.Context, id int64, params api.DisableUserParams) error
+		EnableUserById(ctx context.Context, id int64, params api.EnableUserParams) error
 	}
 )
 
-func NewAdminService(storage repository.Querier) AdminService {
+func NewAdminService(storage Querier) AdminService {
 	return &adminService{
 		storage: storage,
 	}
 }
 
 func (a *adminService) GetListOfUsers(ctx context.Context, params api.GetListOfUsersParams) ([]api.UserDetails, error) {
-	repoParams := repository.SearchAndGetUserDetailsParams{}
+	repoParams := SearchAndGetUserDetailsParams{}
 	if params.FirstName != nil {
 		repoParams.FirstName = pgtype.Text{
 			String: *params.FirstName,
@@ -79,7 +76,7 @@ func (a *adminService) GetListOfUsers(ctx context.Context, params api.GetListOfU
 		userDetails[index] = api.UserDetails{
 			Email:       openapi_types.Email(detail.Email),
 			FirstName:   detail.FirstName,
-			Id:          detail.UserID.Bytes,
+			Id:          detail.UserID,
 			LastName:    detail.LastName,
 			Permissions: detail.Permissions,
 			Roles:       detail.Roles,
@@ -88,14 +85,14 @@ func (a *adminService) GetListOfUsers(ctx context.Context, params api.GetListOfU
 	return userDetails, nil
 }
 
-func (a *adminService) LockUserById(ctx context.Context, id uuid.UUID, params api.LockUserParams) error {
-	userId, err := a.storage.LockUserById(ctx, repository.LockUserByIdParams{
-		UserID:    util.UUIDToPgtypeUUID(id),
-		ActorID:   util.UUIDToPgtypeUUID(ctx.Value("User-ID").(uuid.UUID)),
+func (a *adminService) LockUserById(ctx context.Context, id int64, params api.LockUserParams) error {
+	_, err := a.storage.LockUserById(ctx, LockUserByIdParams{
+		UserID:    id,
+		ActorID:   ctx.Value("User-ID").(int64),
 		IpAddress: ctx.Value("user-ip").(string),
 		UserAgent: params.UserAgent,
 	})
-	if !userId.Valid || (err != nil && err.Error() == "no rows in result set") {
+	if err != nil && err.Error() == "no rows in result set" {
 		return httperror.NewWithMetadata(httperror.UserNotFound, "Invalid user id")
 	} else if err != nil {
 		return httperror.NewWithMetadata(httperror.UserOperationFailed, "Failed to lock user")
@@ -103,14 +100,14 @@ func (a *adminService) LockUserById(ctx context.Context, id uuid.UUID, params ap
 	return nil
 }
 
-func (a *adminService) UnlockUserById(ctx context.Context, id uuid.UUID, params api.UnlockUserParams) error {
-	userId, err := a.storage.UnlockUserById(ctx, repository.UnlockUserByIdParams{
-		UserID:    util.UUIDToPgtypeUUID(id),
-		ActorID:   util.UUIDToPgtypeUUID(ctx.Value("User-ID").(uuid.UUID)),
+func (a *adminService) UnlockUserById(ctx context.Context, id int64, params api.UnlockUserParams) error {
+	_, err := a.storage.UnlockUserById(ctx, UnlockUserByIdParams{
+		UserID:    id,
+		ActorID:   ctx.Value("User-ID").(int64),
 		IpAddress: ctx.Value("user-ip").(string),
 		UserAgent: params.UserAgent,
 	})
-	if !userId.Valid || (err != nil && err.Error() == "no rows in result set") {
+	if err != nil && err.Error() == "no rows in result set" {
 		return httperror.NewWithMetadata(httperror.UserNotFound, "Invalid user id")
 	} else if err != nil {
 		return httperror.NewWithMetadata(httperror.UserOperationFailed, "Failed to unlock user")
@@ -118,14 +115,14 @@ func (a *adminService) UnlockUserById(ctx context.Context, id uuid.UUID, params 
 	return nil
 }
 
-func (a *adminService) DisableUserById(ctx context.Context, id uuid.UUID, params api.DisableUserParams) error {
-	userId, err := a.storage.DisableUserById(ctx, repository.DisableUserByIdParams{
-		UserID:    util.UUIDToPgtypeUUID(id),
-		ActorID:   util.UUIDToPgtypeUUID(ctx.Value("User-ID").(uuid.UUID)),
+func (a *adminService) DisableUserById(ctx context.Context, id int64, params api.DisableUserParams) error {
+	_, err := a.storage.DisableUserById(ctx, DisableUserByIdParams{
+		UserID:    id,
+		ActorID:   ctx.Value("User-ID").(int64),
 		IpAddress: ctx.Value("user-ip").(string),
 		UserAgent: params.UserAgent,
 	})
-	if !userId.Valid || (err != nil && err.Error() == "no rows in result set") {
+	if err != nil && err.Error() == "no rows in result set" {
 		return httperror.NewWithMetadata(httperror.UserNotFound, "Invalid user id")
 	} else if err != nil {
 		return httperror.NewWithMetadata(httperror.UserOperationFailed, "Failed to disable user")
@@ -133,14 +130,14 @@ func (a *adminService) DisableUserById(ctx context.Context, id uuid.UUID, params
 	return nil
 }
 
-func (a *adminService) EnableUserById(ctx context.Context, id uuid.UUID, params api.EnableUserParams) error {
-	userId, err := a.storage.EnableUserById(ctx, repository.EnableUserByIdParams{
-		UserID:    util.UUIDToPgtypeUUID(id),
-		ActorID:   util.UUIDToPgtypeUUID(ctx.Value("User-ID").(uuid.UUID)),
+func (a *adminService) EnableUserById(ctx context.Context, id int64, params api.EnableUserParams) error {
+	_, err := a.storage.EnableUserById(ctx, EnableUserByIdParams{
+		UserID:    id,
+		ActorID:   ctx.Value("User-ID").(int64),
 		IpAddress: ctx.Value("user-ip").(string),
 		UserAgent: params.UserAgent,
 	})
-	if !userId.Valid || (err != nil && err.Error() == "no rows in result set") {
+	if err != nil && err.Error() == "no rows in result set" {
 		return httperror.NewWithMetadata(httperror.UserNotFound, "Invalid user id")
 	} else if err != nil {
 		return httperror.NewWithMetadata(httperror.UserOperationFailed, "Failed to enable user")

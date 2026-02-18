@@ -8,19 +8,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/spdeepak/go-jwt-server/config"
-	"github.com/spdeepak/go-jwt-server/internal/jwt_secret/repository"
 )
 
 func TestService_GetOrCreateSecret_OK_SecretInDB(t *testing.T) {
-	query := repository.NewMockQuerier(t)
-	jwtSecret := repository.JwtSecret{
-		ID:         pgtype.UUID{Bytes: uuid.New(), Valid: true},
+	query := NewMockQuerier(t)
+	jwtSecret := JwtSecret{
+		ID:         1,
 		Secret:     "pI103TBwAF5w1MaKGQ7jCNawt4xoxxQdA0REzlFkzTUOOUc8OQ40FzrM",
 		SecretType: "default",
 		IsValid:    true,
@@ -39,8 +36,8 @@ func TestService_GetOrCreateSecret_OK_SecretInDB(t *testing.T) {
 }
 
 func TestService_GetOrCreateSecret_OK_SecretNotInDBMasterKeyPresent(t *testing.T) {
-	query := repository.NewMockQuerier(t)
-	query.On("GetDefaultSecret", mock.Anything).Return(repository.JwtSecret{}, errors.New("no rows in result set"))
+	query := NewMockQuerier(t)
+	query.On("GetDefaultSecret", mock.Anything).Return(JwtSecret{}, errors.New("no rows in result set"))
 	query.On("CreateDefaultSecret", mock.Anything, mock.MatchedBy(func(base64EncodedEncryptedSecret string) bool {
 		key, err := base64.StdEncoding.DecodeString(base64EncodedEncryptedSecret)
 		return err == nil && string(key) != ""
@@ -56,9 +53,9 @@ func TestService_GetOrCreateSecret_OK_SecretNotInDBMasterKeyPresent(t *testing.T
 
 func TestService_GetOrCreateSecret_NOK_SecretInDB_MasterKeyNotSet(t *testing.T) {
 	if os.Getenv("FATAL_TEST") == "1" {
-		query := repository.NewMockQuerier(t)
-		jwtSecret := repository.JwtSecret{
-			ID:         pgtype.UUID{Bytes: uuid.New(), Valid: true},
+		query := NewMockQuerier(t)
+		jwtSecret := JwtSecret{
+			ID:         1,
 			Secret:     "pI103TBwAF5w1MaKGQ7jCNawt4xoxxQdA0REzlFkzTUOOUc8OQ40FzrM",
 			SecretType: "default",
 			IsValid:    true,
@@ -78,9 +75,9 @@ func TestService_GetOrCreateSecret_NOK_SecretInDB_MasterKeyNotSet(t *testing.T) 
 
 func TestService_GetOrCreateSecret_NOK_SecretInDB_MasterKeyTooLong(t *testing.T) {
 	if os.Getenv("FATAL_TEST") == "1" {
-		query := repository.NewMockQuerier(t)
-		jwtSecret := repository.JwtSecret{
-			ID:         pgtype.UUID{Bytes: uuid.New(), Valid: true},
+		query := NewMockQuerier(t)
+		jwtSecret := JwtSecret{
+			ID:         1,
 			Secret:     "pI103TBwAF5w1MaKGQ7jCNawt4xoxxQdA0REzlFkzTUOOUc8OQ40FzrM",
 			SecretType: "default",
 			IsValid:    true,
@@ -104,8 +101,8 @@ func TestService_GetOrCreateSecret_OK_SecretSetViaEnv(t *testing.T) {
 	tokenConfig := config.Token{
 		Secret: "SldUXyTigqxjUuKCrHQ=",
 	}
-	query := repository.NewMockQuerier(t)
-	query.On("GetDefaultSecret", mock.Anything).Return(repository.JwtSecret{}, errors.New("no rows in result set"))
+	query := NewMockQuerier(t)
+	query.On("GetDefaultSecret", mock.Anything).Return(JwtSecret{}, errors.New("no rows in result set"))
 	jwtStorage := NewStorage(query)
 	secretBytes := GetOrCreateSecret(tokenConfig, jwtStorage)
 	assert.Equal(t, "JWT_$€cR€t", string(secretBytes))
@@ -116,8 +113,8 @@ func TestService_GetOrCreateSecret_NOK_SecretSetViaEnvCorrupted(t *testing.T) {
 		tokenConfig := config.Token{
 			Secret: "SldUXyTigqxjUuKCrHQ",
 		}
-		query := repository.NewMockQuerier(t)
-		query.On("GetDefaultSecret", mock.Anything).Return(repository.JwtSecret{}, errors.New("no rows in result set"))
+		query := NewMockQuerier(t)
+		query.On("GetDefaultSecret", mock.Anything).Return(JwtSecret{}, errors.New("no rows in result set"))
 		jwtStorage := NewStorage(query)
 		GetOrCreateSecret(tokenConfig, jwtStorage)
 	}
@@ -131,8 +128,8 @@ func TestService_GetOrCreateSecret_NOK_SecretSetViaEnvCorrupted(t *testing.T) {
 func TestService_GetOrCreateSecret_NOK_SecretNotSet(t *testing.T) {
 	if os.Getenv("FATAL_TEST") == "1" {
 		tokenConfig := config.Token{}
-		query := repository.NewMockQuerier(t)
-		query.On("GetDefaultSecret", mock.Anything).Return(repository.JwtSecret{}, errors.New("no rows in result set"))
+		query := NewMockQuerier(t)
+		query.On("GetDefaultSecret", mock.Anything).Return(JwtSecret{}, errors.New("no rows in result set"))
 		jwtStorage := NewStorage(query)
 		GetOrCreateSecret(tokenConfig, jwtStorage)
 	}

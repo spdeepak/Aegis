@@ -10,27 +10,18 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/pquerna/otp/totp"
-	"github.com/stretchr/testify/require"
-
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/spdeepak/go-jwt-server/api"
 	"github.com/spdeepak/go-jwt-server/config"
 	"github.com/spdeepak/go-jwt-server/internal/db"
 	"github.com/spdeepak/go-jwt-server/internal/error"
 	"github.com/spdeepak/go-jwt-server/internal/permissions"
-	permissionsRepo "github.com/spdeepak/go-jwt-server/internal/permissions/repository"
 	"github.com/spdeepak/go-jwt-server/internal/roles"
-	roleRepo "github.com/spdeepak/go-jwt-server/internal/roles/repository"
 	"github.com/spdeepak/go-jwt-server/internal/tokens"
-	tokenRepo "github.com/spdeepak/go-jwt-server/internal/tokens/repository"
 	"github.com/spdeepak/go-jwt-server/internal/twoFA"
-	twoFARepo "github.com/spdeepak/go-jwt-server/internal/twoFA/repository"
-	usersRepo "github.com/spdeepak/go-jwt-server/internal/users/repository"
 )
 
 var dbConfig = config.PostgresConfig{
@@ -86,14 +77,14 @@ func truncateTables() {
 func TestIntegrationService_Signup_No2FA(t *testing.T) {
 	truncateTables()
 	t.Run("Create New User without 2FA", func(t *testing.T) {
-		signup_No2fa_OK(t)
+		signupNo2faOk(t)
 	})
 	t.Run("Create User already exists without 2FA", func(t *testing.T) {
-		signup_No2FA_NOK_UserAlreadyExists(t)
+		signupNo2faNokUseralreadyexists(t)
 	})
 }
 
-func signup_No2fa_OK(t *testing.T) {
+func signupNo2faOk(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
 	user := api.UserSignup{
@@ -104,7 +95,7 @@ func signup_No2fa_OK(t *testing.T) {
 	}
 	dbConnection := db.Connect(dbConfig)
 	defer dbConnection.Close()
-	userStorage := usersRepo.New(dbConnection)
+	userStorage := New(dbConnection)
 	userService := NewService(userStorage, nil, nil)
 
 	res, err := userService.Signup(ctx, user)
@@ -112,7 +103,7 @@ func signup_No2fa_OK(t *testing.T) {
 	assert.Empty(t, res)
 }
 
-func signup_No2FA_NOK_UserAlreadyExists(t *testing.T) {
+func signupNo2faNokUseralreadyexists(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
 	user := api.UserSignup{
@@ -124,7 +115,7 @@ func signup_No2FA_NOK_UserAlreadyExists(t *testing.T) {
 
 	dbConnection := db.Connect(dbConfig)
 	defer dbConnection.Close()
-	userStorage := usersRepo.New(dbConnection)
+	userStorage := New(dbConnection)
 	userService := NewService(userStorage, nil, nil)
 
 	res, err := userService.Signup(ctx, user)
@@ -138,14 +129,14 @@ func signup_No2FA_NOK_UserAlreadyExists(t *testing.T) {
 func TestIntegrationService_Signup_2FA(t *testing.T) {
 	truncateTables()
 	t.Run("Create New User with 2FA", func(t *testing.T) {
-		signup_2FA_OK(t)
+		signup2faOk(t)
 	})
 	t.Run("Create User already exists with 2FA", func(t *testing.T) {
-		signup_2FA_NOK_UserAlreadyExists(t)
+		signup2faNokUseralreadyexists(t)
 	})
 }
 
-func signup_2FA_OK(t *testing.T) {
+func signup2faOk(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
 	user := api.UserSignup{
@@ -159,7 +150,7 @@ func signup_2FA_OK(t *testing.T) {
 	twoFaService := twoFA.NewService("go-jwt-server", nil)
 	dbConnection := db.Connect(dbConfig)
 	defer dbConnection.Close()
-	userStorage := usersRepo.New(dbConnection)
+	userStorage := New(dbConnection)
 	userService := NewService(userStorage, twoFaService, nil)
 
 	res, err := userService.Signup(ctx, user)
@@ -169,7 +160,7 @@ func signup_2FA_OK(t *testing.T) {
 	assert.NotEmpty(t, res.QrImage)
 }
 
-func signup_2FA_NOK_UserAlreadyExists(t *testing.T) {
+func signup2faNokUseralreadyexists(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
 	user := api.UserSignup{
@@ -183,7 +174,7 @@ func signup_2FA_NOK_UserAlreadyExists(t *testing.T) {
 	twoFaService := twoFA.NewService("go-jwt-server", nil)
 	dbConnection := db.Connect(dbConfig)
 	defer dbConnection.Close()
-	userStorage := usersRepo.New(dbConnection)
+	userStorage := New(dbConnection)
 	userService := NewService(userStorage, twoFaService, nil)
 
 	res, err := userService.Signup(ctx, user)
@@ -197,19 +188,19 @@ func signup_2FA_NOK_UserAlreadyExists(t *testing.T) {
 func TestIntegrationService_Login_OK(t *testing.T) {
 	truncateTables()
 	t.Run("Login without 2FA", func(t *testing.T) {
-		signup_No2fa_OK(t)
-		login_OK(t)
+		signupNo2faOk(t)
+		loginOk(t)
 	})
 	t.Run("Login with 2FA invalid password", func(t *testing.T) {
-		login_NOK_WrongPassword(t)
+		loginNokWrongPassword(t)
 	})
 	truncateTables()
 	t.Run("Login with 2FA invalid user", func(t *testing.T) {
-		login_NOK(t)
+		loginNOK(t)
 	})
 }
 
-func login_OK(t *testing.T) {
+func loginOk(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
 	ctx.Header("x-login-source", "test")
@@ -226,9 +217,9 @@ func login_OK(t *testing.T) {
 
 	dbConnection := db.Connect(dbConfig)
 	defer dbConnection.Close()
-	tokenQuery := tokenRepo.New(dbConnection)
+	tokenQuery := tokens.New(dbConnection)
 	tokenService := tokens.NewService(tokenQuery, []byte("JWT_$€Cr€t"), "")
-	userStorage := usersRepo.New(dbConnection)
+	userStorage := New(dbConnection)
 	userService := NewService(userStorage, nil, tokenService)
 	loginParams := api.LoginParams{
 		XLoginSource: api.LoginParamsXLoginSourceApi,
@@ -241,7 +232,7 @@ func login_OK(t *testing.T) {
 	assert.NotEmpty(t, res.(api.LoginSuccessWithJWT).RefreshToken)
 }
 
-func login_NOK_WrongPassword(t *testing.T) {
+func loginNokWrongPassword(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
 	email := "first.last@example.com"
@@ -252,7 +243,7 @@ func login_NOK_WrongPassword(t *testing.T) {
 
 	dbConnection := db.Connect(dbConfig)
 	defer dbConnection.Close()
-	userStorage := usersRepo.New(dbConnection)
+	userStorage := New(dbConnection)
 	userService := NewService(userStorage, nil, nil)
 
 	loginParams := api.LoginParams{
@@ -266,7 +257,7 @@ func login_NOK_WrongPassword(t *testing.T) {
 	assert.Empty(t, res.(api.LoginSuccessWithJWT).RefreshToken)
 }
 
-func login_NOK(t *testing.T) {
+func loginNOK(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
 	email := "first.last@example.com"
@@ -277,7 +268,7 @@ func login_NOK(t *testing.T) {
 
 	dbConnection := db.Connect(dbConfig)
 	defer dbConnection.Close()
-	userStorage := usersRepo.New(dbConnection)
+	userStorage := New(dbConnection)
 	userService := NewService(userStorage, nil, nil)
 	loginParams := api.LoginParams{
 		XLoginSource: api.LoginParamsXLoginSourceApi,
@@ -293,19 +284,19 @@ func login_NOK(t *testing.T) {
 func TestIntegrationService_Login2FA(t *testing.T) {
 	truncateTables()
 	t.Run("Login with 2FA", func(t *testing.T) {
-		login2FA_OK(t)
+		login2FAOK(t)
 	})
 	truncateTables()
 	t.Run("Login with expired 2FA", func(t *testing.T) {
-		login2FA_NOK_Old2FACode(t)
+		login2faNOKOld2FACode(t)
 	})
 	truncateTables()
 	t.Run("Login with expired 2FA", func(t *testing.T) {
-		login2FA_NOK_UserNotExist(t)
+		login2FANOKUserNotExist(t)
 	})
 }
 
-func login2FA_OK(t *testing.T) {
+func login2FAOK(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
 	user := api.UserSignup{
@@ -319,11 +310,11 @@ func login2FA_OK(t *testing.T) {
 	secret := "JWT_$€CR€T"
 	dbConnection := db.Connect(dbConfig)
 	defer dbConnection.Close()
-	tokenQuery := tokenRepo.New(dbConnection)
+	tokenQuery := tokens.New(dbConnection)
 	tokenService := tokens.NewService(tokenQuery, []byte(secret), "")
-	twoFAQuery := twoFARepo.New(dbConnection)
+	twoFAQuery := twoFA.New(dbConnection)
 	twoFaService := twoFA.NewService("go-jwt-server", twoFAQuery)
-	userStorage := usersRepo.New(dbConnection)
+	userStorage := New(dbConnection)
 	userService := NewService(userStorage, twoFaService, tokenService)
 
 	res, err := userService.Signup(ctx, user)
@@ -344,14 +335,14 @@ func login2FA_OK(t *testing.T) {
 	passcode, err := totp.GenerateCode(res.Secret, time.Now().Add(-20*time.Second))
 	assert.NoError(t, err)
 
-	login2FA, err := userService.Login2FA(ctx, api.Login2FAParams{}, userByEmail.UserID.Bytes, passcode)
+	login2FA, err := userService.Login2FA(ctx, api.Login2FAParams{}, userByEmail.UserID, passcode)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, login2FA)
 	assert.NotEmpty(t, login2FA.AccessToken)
 	assert.NotEmpty(t, login2FA.RefreshToken)
 }
 
-func login2FA_NOK_Old2FACode(t *testing.T) {
+func login2faNOKOld2FACode(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
 	user := api.UserSignup{
@@ -365,11 +356,11 @@ func login2FA_NOK_Old2FACode(t *testing.T) {
 	secret := "JWT_$€CR€T"
 	dbConnection := db.Connect(dbConfig)
 	defer dbConnection.Close()
-	tokenQuery := tokenRepo.New(dbConnection)
+	tokenQuery := tokens.New(dbConnection)
 	tokenService := tokens.NewService(tokenQuery, []byte(secret), "")
-	twoFAQuery := twoFARepo.New(dbConnection)
+	twoFAQuery := twoFA.New(dbConnection)
 	twoFaService := twoFA.NewService("go-jwt-server", twoFAQuery)
-	userStorage := usersRepo.New(dbConnection)
+	userStorage := New(dbConnection)
 	userService := NewService(userStorage, twoFaService, tokenService)
 
 	res, err := userService.Signup(ctx, user)
@@ -390,12 +381,12 @@ func login2FA_NOK_Old2FACode(t *testing.T) {
 	passcode, err := totp.GenerateCode(res.Secret, time.Now().Add(-60*time.Second))
 	assert.NoError(t, err)
 
-	login2FA, err := userService.Login2FA(ctx, api.Login2FAParams{}, userByEmail.UserID.Bytes, passcode)
+	login2FA, err := userService.Login2FA(ctx, api.Login2FAParams{}, userByEmail.UserID, passcode)
 	assert.Error(t, err)
 	assert.Empty(t, login2FA)
 }
 
-func login2FA_NOK_UserNotExist(t *testing.T) {
+func login2FANOKUserNotExist(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
 	ctx.Header("x-login-source", "test")
@@ -407,14 +398,14 @@ func login2FA_NOK_UserNotExist(t *testing.T) {
 	secret := "JWT_$€CR€T"
 	dbConnection := db.Connect(dbConfig)
 	defer dbConnection.Close()
-	tokenQuery := tokenRepo.New(dbConnection)
+	tokenQuery := tokens.New(dbConnection)
 	tokenService := tokens.NewService(tokenQuery, []byte(secret), "")
-	twoFAQuery := twoFARepo.New(dbConnection)
+	twoFAQuery := twoFA.New(dbConnection)
 	twoFaService := twoFA.NewService("go-jwt-server", twoFAQuery)
-	userStorage := usersRepo.New(dbConnection)
+	userStorage := New(dbConnection)
 	userService := NewService(userStorage, twoFaService, tokenService)
 
-	login2FA, err := userService.Login2FA(ctx, api.Login2FAParams{}, uuid.New(), "123456")
+	login2FA, err := userService.Login2FA(ctx, api.Login2FAParams{}, 99999999, "123456")
 	assert.Error(t, err)
 	assert.Empty(t, login2FA)
 }
@@ -436,12 +427,12 @@ func TestService_GetUserRolesAndPermissions(t *testing.T) {
 	}
 	dbConnection := db.Connect(dbConfig)
 	defer dbConnection.Close()
-	roleStorage := roleRepo.New(dbConnection)
+	roleStorage := roles.New(dbConnection)
 	roleService := roles.NewService(roleStorage)
-	permissionStorage := permissionsRepo.New(dbConnection)
+	permissionStorage := permissions.New(dbConnection)
 	permissionsService := permissions.NewService(permissionStorage)
-	roleIds := make([]uuid.UUID, 10)
-	permissionIds := make([]uuid.UUID, 50)
+	roleIds := make([]int64, 10)
+	permissionIds := make([]int64, 50)
 	for num := range 10 {
 		request.Name = fmt.Sprintf("%s_%d", request.Name, num)
 		createdRole, err := roleService.CreateNewRole(ctx, api.CreateNewRoleParams{}, "", request)
@@ -452,7 +443,7 @@ func TestService_GetUserRolesAndPermissions(t *testing.T) {
 			permission, err := permissionsService.CreateNewPermission(ctx, api.CreateNewPermissionParams{}, api.CreatePermission{Description: "permission description", Name: fmt.Sprintf("role::create_%d_%d", num, pn)})
 			assert.NoError(t, err)
 			assert.NotEmpty(t, permission)
-			err = roleService.AssignPermissionToRole(ctx, createdRole.Id, api.AssignPermissionToRoleParams{}, api.AssignPermission{Ids: []openapi_types.UUID{permission.Id}}, "first.last@example.com")
+			err = roleService.AssignPermissionToRole(ctx, createdRole.Id, api.AssignPermissionToRoleParams{}, api.AssignPermission{Ids: []int64{permission.Id}}, "first.last@example.com")
 			assert.NoError(t, err)
 			permissionIds[num+pn] = permission.Id
 		}
@@ -467,11 +458,11 @@ func TestService_GetUserRolesAndPermissions(t *testing.T) {
 	}
 
 	secret := "JWT_$€CR€T"
-	tokenQuery := tokenRepo.New(dbConnection)
+	tokenQuery := tokens.New(dbConnection)
 	tokenService := tokens.NewService(tokenQuery, []byte(secret), "")
-	twoFAQuery := twoFARepo.New(dbConnection)
+	twoFAQuery := twoFA.New(dbConnection)
 	twoFaService := twoFA.NewService("go-jwt-server", twoFAQuery)
-	userStorage := usersRepo.New(dbConnection)
+	userStorage := New(dbConnection)
 	userService := NewService(userStorage, twoFaService, tokenService)
 
 	user := api.UserSignup{
@@ -489,20 +480,20 @@ func TestService_GetUserRolesAndPermissions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, userByEmail)
 
-	err = userStorage.AssignRolesToUser(ctx, usersRepo.AssignRolesToUserParams{
+	err = userStorage.AssignRolesToUser(ctx, AssignRolesToUserParams{
 		UserID:    userByEmail.UserID,
-		RoleID:    []pgtype.UUID{{Bytes: roleIds[0], Valid: true}, {Bytes: roleIds[1], Valid: true}, {Bytes: roleIds[2], Valid: true}},
+		RoleID:    []int64{roleIds[0], roleIds[1], roleIds[2]},
 		CreatedBy: "first.last@example.com",
 	})
 	assert.NoError(t, err)
-	err = userStorage.AssignPermissionToUser(ctx, usersRepo.AssignPermissionToUserParams{
+	err = userStorage.AssignPermissionToUser(ctx, AssignPermissionToUserParams{
 		UserID:       userByEmail.UserID,
-		PermissionID: []pgtype.UUID{{Bytes: permissionIds[10], Valid: true}, {Bytes: permissionIds[11], Valid: true}, {Bytes: permissionIds[12], Valid: true}, {Bytes: permissionIds[13], Valid: true}},
+		PermissionID: []int64{permissionIds[10], permissionIds[11], permissionIds[12], permissionIds[13]},
 		CreatedBy:    "first.last@example.com",
 	})
 	assert.NoError(t, err)
 
-	userRolesAndPermissions, err := userService.GetUserRolesAndPermissions(ctx, userByEmail.UserID.Bytes, api.GetRolesOfUserParams{})
+	userRolesAndPermissions, err := userService.GetUserRolesAndPermissions(ctx, userByEmail.UserID, api.GetRolesOfUserParams{})
 	assert.NoError(t, err)
 	assert.NotEmpty(t, userRolesAndPermissions)
 	assert.Len(t, userRolesAndPermissions.Roles, 3)
@@ -526,7 +517,7 @@ func TestService_AssignRolesToUser(t *testing.T) {
 	}
 	dbConnection := db.Connect(dbConfig)
 	defer dbConnection.Close()
-	roleStorage := roleRepo.New(dbConnection)
+	roleStorage := roles.New(dbConnection)
 	roleService := roles.NewService(roleStorage)
 	createdRole, err := roleService.CreateNewRole(ctx, api.CreateNewRoleParams{}, "", request)
 	assert.NoError(t, err)
@@ -542,11 +533,11 @@ func TestService_AssignRolesToUser(t *testing.T) {
 	}
 
 	secret := "JWT_$€CR€T"
-	tokenQuery := tokenRepo.New(dbConnection)
+	tokenQuery := tokens.New(dbConnection)
 	tokenService := tokens.NewService(tokenQuery, []byte(secret), "")
-	twoFAQuery := twoFARepo.New(dbConnection)
+	twoFAQuery := twoFA.New(dbConnection)
 	twoFaService := twoFA.NewService("go-jwt-server", twoFAQuery)
-	userStorage := usersRepo.New(dbConnection)
+	userStorage := New(dbConnection)
 	userService := NewService(userStorage, twoFaService, tokenService)
 
 	user := api.UserSignup{
@@ -564,7 +555,7 @@ func TestService_AssignRolesToUser(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, userByEmail)
 
-	err = userService.AssignRolesToUser(ctx, userByEmail.UserID.Bytes, api.AssignRolesToUserParams{}, api.AssignRoleToUser{Roles: []uuid.UUID{createdRole.Id}}, "first.last@example.com")
+	err = userService.AssignRolesToUser(ctx, userByEmail.UserID, api.AssignRolesToUserParams{}, api.AssignRoleToUser{Roles: []int64{createdRole.Id}}, "first.last@example.com")
 	assert.NoError(t, err)
 }
 
@@ -585,7 +576,7 @@ func TestService_UnassignRolesToUser(t *testing.T) {
 	}
 	dbConnection := db.Connect(dbConfig)
 	defer dbConnection.Close()
-	roleStorage := roleRepo.New(dbConnection)
+	roleStorage := roles.New(dbConnection)
 	roleService := roles.NewService(roleStorage)
 	createdRole, err := roleService.CreateNewRole(ctx, api.CreateNewRoleParams{}, "", request)
 	assert.NoError(t, err)
@@ -601,11 +592,11 @@ func TestService_UnassignRolesToUser(t *testing.T) {
 	}
 
 	secret := "JWT_$€CR€T"
-	tokenQuery := tokenRepo.New(dbConnection)
+	tokenQuery := tokens.New(dbConnection)
 	tokenService := tokens.NewService(tokenQuery, []byte(secret), "")
-	twoFAQuery := twoFARepo.New(dbConnection)
+	twoFAQuery := twoFA.New(dbConnection)
 	twoFaService := twoFA.NewService("go-jwt-server", twoFAQuery)
-	userStorage := usersRepo.New(dbConnection)
+	userStorage := New(dbConnection)
 	userService := NewService(userStorage, twoFaService, tokenService)
 
 	user := api.UserSignup{
@@ -623,16 +614,16 @@ func TestService_UnassignRolesToUser(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, userByEmail)
 
-	err = userService.AssignRolesToUser(ctx, userByEmail.UserID.Bytes, api.AssignRolesToUserParams{}, api.AssignRoleToUser{Roles: []uuid.UUID{createdRole.Id}}, "first.last@example.com")
+	err = userService.AssignRolesToUser(ctx, userByEmail.UserID, api.AssignRolesToUserParams{}, api.AssignRoleToUser{Roles: []int64{createdRole.Id}}, "first.last@example.com")
 	assert.NoError(t, err)
 
-	userRolesAndPermissions, err := userService.GetUserRolesAndPermissions(ctx, userByEmail.UserID.Bytes, api.GetRolesOfUserParams{})
+	userRolesAndPermissions, err := userService.GetUserRolesAndPermissions(ctx, userByEmail.UserID, api.GetRolesOfUserParams{})
 	assert.NoError(t, err)
 	assert.NotEmpty(t, userRolesAndPermissions)
 	assert.NotEmpty(t, userRolesAndPermissions.Roles)
 	assert.Len(t, userRolesAndPermissions.Roles, 1)
 
-	err = userService.UnassignRolesOfUser(ctx, userByEmail.UserID.Bytes, createdRole.Id, api.RemoveRolesForUserParams{})
+	err = userService.UnassignRolesOfUser(ctx, userByEmail.UserID, createdRole.Id, api.RemoveRolesForUserParams{})
 	assert.NoError(t, err)
 
 	userByEmail, err = userStorage.GetEntireUserByEmail(ctx, "first.last@example.com")

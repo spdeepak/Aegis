@@ -135,7 +135,7 @@ func NewConfiguration() *AppConfig {
 	populatePostgresCredentials(secrets, config)
 
 	if err := validateConfig(config); err != nil {
-		slog.Error("invalid config", slog.Any("error", err))
+		slog.Error("invalid config", "error", err)
 		os.Exit(1)
 	}
 

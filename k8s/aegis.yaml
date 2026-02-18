@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aegis-config
+data:
+  application.yaml: |-
+    token:
+      bearer:
+        ttl: 15m
+      refresh:
+        ttl: 168m
+      issuer: go-jwt-server
+    postgres:
+      host: postgres
+      dbName: jwt_server
+      port: 5432
+      timeout: 10s
+      maxRetry: 5
+      sslMode: disable
+      connectTimeout: 10s
+      statementTimeout: 15s
+      maxOpenConns: 5
+      maxIdleConns: 2
+      connMaxLifetime: 10m
+      connMaxIdleTime: 2m
+      healthCheckPeriod: 1m
+    auth:
+      skipPaths:
+    #    - /api/v1/access-control/roles
+    #    - /api/v1/access-control/roles/{id}
+  secrets.json: |-
+    {
+      "postgres": {
+        "username": "admin",
+        "password": "admin"
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aegis
+  labels:
+    app: aegis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aegis
+  template:
+    metadata:
+      labels:
+        app: aegis
+    spec:
+      containers:
+        - name: aegis
+          image: spdeepak/aegis:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          env:
+            - name: JWT_MASTER_KEY
+              value: "qwertyuiopasdfghjklzxcvbnmqazwsx"
+          volumeMounts:
+            - name: app-config
+              mountPath: /app/configs
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - name: app-config
+          configMap:
+            name: aegis-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aegis
+  namespace: default
+spec:
+  selector:
+    app: aegis
+  ports:
+    - port: 80
+      targetPort: 8080

@@ -29,7 +29,7 @@ WHERE id = sqlc.arg('id');
 -- name: AssignPermissions :exec
 INSERT INTO role_permissions (role_id, permission_id, created_at, created_by)
 SELECT sqlc.arg('role_id'),
-       unnest(sqlc.arg('permission_id')::uuid[]),
+       unnest(sqlc.arg('permission_id')::bigint[]),
        now(),
        sqlc.arg('createdBy')
 ON CONFLICT DO NOTHING;

@@ -6,39 +6,34 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgtype"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/spdeepak/go-jwt-server/api"
 	"github.com/spdeepak/go-jwt-server/internal/error"
 	"github.com/spdeepak/go-jwt-server/internal/tokens"
-	token "github.com/spdeepak/go-jwt-server/internal/tokens/repository"
 	"github.com/spdeepak/go-jwt-server/internal/twoFA"
-	"github.com/spdeepak/go-jwt-server/internal/users/repository"
-	"github.com/spdeepak/go-jwt-server/util"
 )
 
 type (
 	service struct {
-		query        repository.Querier
+		query        Querier
 		tokenService tokens.Service
 		twoFAService twoFA.Service
 	}
 	Service interface {
 		Signup(ctx *gin.Context, user api.UserSignup) (api.SignUpWith2FAResponse, error)
 		Login(ctx *gin.Context, params api.LoginParams, login api.UserLogin) (any, error)
-		Login2FA(ctx *gin.Context, params api.Login2FAParams, userId uuid.UUID, passcode string) (api.LoginSuccessWithJWT, error)
+		Login2FA(ctx *gin.Context, params api.Login2FAParams, userId int64, passcode string) (api.LoginSuccessWithJWT, error)
 		RefreshToken(ctx *gin.Context, params api.RefreshParams, refresh api.Refresh) (api.LoginSuccessWithJWT, error)
-		GetUserRolesAndPermissions(ctx *gin.Context, id api.UuId, params api.GetRolesOfUserParams) (api.UserWithRoles, error)
-		AssignRolesToUser(ctx *gin.Context, userId api.UuId, params api.AssignRolesToUserParams, assignRoleToUser api.AssignRoleToUser, email string) error
-		UnassignRolesOfUser(ctx *gin.Context, userId api.UuId, roleId api.RoleId, params api.RemoveRolesForUserParams) error
+		GetUserRolesAndPermissions(ctx *gin.Context, id api.Id, params api.GetRolesOfUserParams) (api.UserWithRoles, error)
+		AssignRolesToUser(ctx *gin.Context, userId api.Id, params api.AssignRolesToUserParams, assignRoleToUser api.AssignRoleToUser, email string) error
+		UnassignRolesOfUser(ctx *gin.Context, userId api.Id, roleId api.RoleId, params api.RemoveRolesForUserParams) error
 	}
 )
 
-func NewService(query repository.Querier, twoFAService twoFA.Service, tokenService tokens.Service) Service {
+func NewService(query Querier, twoFAService twoFA.Service, tokenService tokens.Service) Service {
 	return &service{
 		query:        query,
 		twoFAService: twoFAService,
@@ -49,12 +44,12 @@ func NewService(query repository.Querier, twoFAService twoFA.Service, tokenServi
 func (s *service) Signup(ctx *gin.Context, user api.UserSignup) (api.SignUpWith2FAResponse, error) {
 	hashedPassword, err := hashPassword(user.Password)
 	if err != nil {
-		slog.ErrorContext(ctx, "Failed to encrypt password", slog.Any("error", err))
+		slog.ErrorContext(ctx, "Failed to encrypt password", "error", err)
 		return api.SignUpWith2FAResponse{}, err
 	}
 	email := string(user.Email)
 	if !user.TwoFAEnabled {
-		userSignup := repository.SignupParams{
+		userSignup := SignupParams{
 			Email:        email,
 			FirstName:    user.FirstName,
 			LastName:     user.LastName,
@@ -74,7 +69,7 @@ func (s *service) Signup(ctx *gin.Context, user api.UserSignup) (api.SignUpWith2
 	if err != nil {
 		return api.SignUpWith2FAResponse{}, err
 	}
-	userSignupWith2FA := repository.SignupWith2FAParams{
+	userSignupWith2FA := SignupWith2FAParams{
 		Secret:       user2FASetup.Secret,
 		Url:          user2FASetup.Url,
 		Email:        email,
@@ -109,12 +104,12 @@ func (s *service) Login(ctx *gin.Context, params api.LoginParams, login api.User
 		return api.LoginSuccessWithJWT{}, httperror.New(httperror.InvalidCredentials)
 	}
 	if user.TwoFaEnabled {
-		return s.tokenService.GenerateTempToken(ctx, user.UserID.Bytes)
+		return s.tokenService.GenerateTempToken(ctx, user.UserID)
 	}
 	if user.Locked {
 		return api.LoginSuccessWithJWT{}, httperror.New(httperror.UserAccountLocked)
 	}
-	jwtUser := token.User{
+	jwtUser := tokens.User{
 		ID:        user.UserID,
 		Email:     user.Email,
 		FirstName: user.FirstName,
@@ -127,9 +122,8 @@ func (s *service) Login(ctx *gin.Context, params api.LoginParams, login api.User
 	return s.tokenService.GenerateNewTokenPair(ctx, ctx.ClientIP(), tokenParams, jwtUser, user.RoleNames, user.PermissionNames)
 }
 
-func (s *service) Login2FA(ctx *gin.Context, params api.Login2FAParams, userId uuid.UUID, passcode string) (api.LoginSuccessWithJWT, error) {
-	pgtypeUUID := util.UUIDToPgtypeUUID(userId)
-	isValid, err := s.twoFAService.Verify2FALogin(ctx, params, pgtypeUUID, passcode)
+func (s *service) Login2FA(ctx *gin.Context, params api.Login2FAParams, userId int64, passcode string) (api.LoginSuccessWithJWT, error) {
+	isValid, err := s.twoFAService.Verify2FALogin(ctx, params, userId, passcode)
 	if err != nil {
 		return api.LoginSuccessWithJWT{}, httperror.NewWithMetadata(httperror.InvalidTwoFA, err.Error())
 	}
@@ -137,7 +131,7 @@ func (s *service) Login2FA(ctx *gin.Context, params api.Login2FAParams, userId u
 		return api.LoginSuccessWithJWT{}, httperror.New(httperror.InvalidTwoFA)
 	}
 
-	user, err := s.query.GetUserById(ctx, pgtypeUUID)
+	user, err := s.query.GetUserById(ctx, userId)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
 			return api.LoginSuccessWithJWT{}, httperror.New(httperror.InvalidCredentials)
@@ -149,7 +143,7 @@ func (s *service) Login2FA(ctx *gin.Context, params api.Login2FAParams, userId u
 		return api.LoginSuccessWithJWT{}, httperror.New(httperror.UserAccountLocked)
 	}
 
-	jwtUser := token.User{
+	jwtUser := tokens.User{
 		ID:        user.ID,
 		Email:     user.Email,
 		FirstName: user.FirstName,
@@ -176,7 +170,7 @@ func (s *service) RefreshToken(ctx *gin.Context, params api.RefreshParams, refre
 	if err != nil {
 		return api.LoginSuccessWithJWT{}, httperror.NewWithMetadata(httperror.InvalidRefreshToken, "Invalid token claims")
 	}
-	jwtUser := token.User{
+	jwtUser := tokens.User{
 		ID:        user.UserID,
 		Email:     user.Email,
 		FirstName: user.FirstName,
@@ -190,13 +184,13 @@ func (s *service) RefreshToken(ctx *gin.Context, params api.RefreshParams, refre
 	return s.tokenService.RefreshAndInvalidateToken(ctx, ctx.ClientIP(), tokenParams, refresh, jwtUser, user.RoleNames, user.PermissionNames)
 }
 
-func (s *service) GetUserRolesAndPermissions(ctx *gin.Context, id api.UuId, params api.GetRolesOfUserParams) (api.UserWithRoles, error) {
-	userRolesAndPermissions, err := s.query.GetUserRolesAndPermissionsFromID(ctx, util.UUIDToPgtypeUUID(id))
+func (s *service) GetUserRolesAndPermissions(ctx *gin.Context, id api.Id, params api.GetRolesOfUserParams) (api.UserWithRoles, error) {
+	userRolesAndPermissions, err := s.query.GetUserRolesAndPermissionsFromID(ctx, id)
 	if err != nil {
 		return api.UserWithRoles{}, err
 	}
 	return api.UserWithRoles{
-		Id:          userRolesAndPermissions.UserID.Bytes,
+		Id:          userRolesAndPermissions.UserID,
 		Email:       openapi_types.Email(userRolesAndPermissions.Email),
 		FirstName:   userRolesAndPermissions.FirstName,
 		LastName:    userRolesAndPermissions.LastName,
@@ -205,13 +199,13 @@ func (s *service) GetUserRolesAndPermissions(ctx *gin.Context, id api.UuId, para
 	}, nil
 }
 
-func (s *service) AssignRolesToUser(ctx *gin.Context, userId api.UuId, params api.AssignRolesToUserParams, assignRoleToUser api.AssignRoleToUser, email string) error {
-	rolesIds := make([]pgtype.UUID, len(assignRoleToUser.Roles))
+func (s *service) AssignRolesToUser(ctx *gin.Context, userId api.Id, params api.AssignRolesToUserParams, assignRoleToUser api.AssignRoleToUser, email string) error {
+	rolesIds := make([]int64, len(assignRoleToUser.Roles))
 	for index, id := range assignRoleToUser.Roles {
-		rolesIds[index] = util.UUIDToPgtypeUUID(id)
+		rolesIds[index] = id
 	}
-	assignRolesToUser := repository.AssignRolesToUserParams{
-		UserID:    util.UUIDToPgtypeUUID(userId),
+	assignRolesToUser := AssignRolesToUserParams{
+		UserID:    userId,
 		RoleID:    rolesIds,
 		CreatedBy: email,
 	}
@@ -227,10 +221,10 @@ func (s *service) AssignRolesToUser(ctx *gin.Context, userId api.UuId, params ap
 	return nil
 }
 
-func (s *service) UnassignRolesOfUser(ctx *gin.Context, userId api.UuId, roleId api.RoleId, params api.RemoveRolesForUserParams) error {
-	unassignRolesToUser := repository.UnassignRolesToUserParams{
-		UserID: util.UUIDToPgtypeUUID(userId),
-		RoleID: util.UUIDToPgtypeUUID(roleId),
+func (s *service) UnassignRolesOfUser(ctx *gin.Context, userId api.Id, roleId api.RoleId, params api.RemoveRolesForUserParams) error {
+	unassignRolesToUser := UnassignRolesToUserParams{
+		UserID: userId,
+		RoleID: roleId,
 	}
 	err := s.query.UnassignRolesToUser(ctx, unassignRolesToUser)
 	if err != nil {

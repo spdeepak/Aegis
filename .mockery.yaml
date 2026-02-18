@@ -11,21 +11,21 @@ recursive: false
 require-template-schema-exists: false #This has to be set to false since we need interface of sqlc generated code
 template: testify
 packages:
-  github.com/spdeepak/go-jwt-server/internal/jwt_secret/repository:
+  github.com/spdeepak/go-jwt-server/internal/jwt_secret:
     interfaces:
       Querier:
-  github.com/spdeepak/go-jwt-server/internal/tokens/repository:
+  github.com/spdeepak/go-jwt-server/internal/tokens:
     interfaces:
       Querier:
-  github.com/spdeepak/go-jwt-server/internal/permissions/repository:
+  github.com/spdeepak/go-jwt-server/internal/permissions:
     interfaces:
       Querier:
-  github.com/spdeepak/go-jwt-server/internal/roles/repository:
+  github.com/spdeepak/go-jwt-server/internal/roles:
     interfaces:
       Querier:
-  github.com/spdeepak/go-jwt-server/internal/users/repository:
+  github.com/spdeepak/go-jwt-server/internal/users:
     interfaces:
       Querier:
-  github.com/spdeepak/go-jwt-server/internal/twoFA/repository:
+  github.com/spdeepak/go-jwt-server/internal/twoFA:
     interfaces:
       Querier:
