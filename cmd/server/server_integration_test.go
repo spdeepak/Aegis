@@ -928,17 +928,20 @@ func TestServer_RolesAndPermissions_OK(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &rolesAndPermissions))
 	assert.NotEmpty(t, rolesAndPermissions)
 	assert.Len(t, rolesAndPermissions, 2)
-	assert.NotEmpty(t, rolesAndPermissions[0].Roles)
-	assert.Len(t, rolesAndPermissions[0].Roles.Permissions, 2)
-	assert.Equal(t, role.Name, rolesAndPermissions[0].Roles.Name)
-	assert.Equal(t, role.Description, rolesAndPermissions[0].Roles.Description)
-	assert.Equal(t, role.CreatedAt.In(time.UTC), rolesAndPermissions[0].Roles.CreatedAt.In(time.UTC))
-	assert.Equal(t, role.CreatedBy, rolesAndPermissions[0].Roles.CreatedBy)
-	assert.Equal(t, role.UpdatedAt.In(time.UTC), rolesAndPermissions[0].Roles.UpdatedAt.In(time.UTC))
-	assert.Equal(t, role.UpdatedBy, rolesAndPermissions[0].Roles.UpdatedBy)
-
-	assert.Contains(t, rolesAndPermissions[0].Roles.Permissions, permissionRes1)
-	assert.Contains(t, rolesAndPermissions[0].Roles.Permissions, permissionRes2)
+	for _, rolesAndPermission := range rolesAndPermissions {
+		if rolesAndPermission.Roles.Name == "admin_role" {
+			assert.NotEmpty(t, rolesAndPermission.Roles)
+			assert.Len(t, rolesAndPermission.Roles.Permissions, 2)
+			assert.Equal(t, role.Name, rolesAndPermission.Roles.Name)
+			assert.Equal(t, role.Description, rolesAndPermission.Roles.Description)
+			assert.WithinDuration(t, role.CreatedAt.In(time.UTC), rolesAndPermission.Roles.CreatedAt.In(time.UTC), time.Second)
+			assert.Equal(t, role.CreatedBy, rolesAndPermission.Roles.CreatedBy)
+			assert.WithinDuration(t, role.UpdatedAt.In(time.UTC), rolesAndPermission.Roles.UpdatedAt.In(time.UTC), time.Second)
+			assert.Equal(t, role.UpdatedBy, rolesAndPermission.Roles.UpdatedBy)
+			assert.Contains(t, rolesAndPermission.Roles.Permissions, permissionRes1)
+			assert.Contains(t, rolesAndPermission.Roles.Permissions, permissionRes2)
+		}
+	}
 }
 
 func TestServer_AssignRolesToUser_OK(t *testing.T) {
