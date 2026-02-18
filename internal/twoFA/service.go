@@ -62,7 +62,7 @@ func (s *service) Setup2FA(ctx context.Context, email string) (User2FASetup, err
 func (s *service) Verify2FALogin(ctx context.Context, params api.Login2FAParams, userId int64, passcode string) (bool, error) {
 	twoFADetails, err := s.query.Get2FADetails(ctx, userId)
 	if err != nil {
-		slog.ErrorContext(ctx, fmt.Sprintf("Failed to get 2FA details for user: %s", userId), "error", err)
+		slog.ErrorContext(ctx, fmt.Sprintf("Failed to get 2FA details for user: %d", userId), "error", err)
 		return false, httperror.New(httperror.InvalidTwoFA)
 	}
 	return totp.ValidateCustom(passcode, twoFADetails.Secret, time.Now(), totp.ValidateOpts{
@@ -76,7 +76,7 @@ func (s *service) Verify2FALogin(ctx context.Context, params api.Login2FAParams,
 func (s *service) Remove2FA(ctx context.Context, userId int64, passcode string) error {
 	twoFADetails, err := s.query.Get2FADetails(ctx, userId)
 	if err != nil {
-		slog.ErrorContext(ctx, fmt.Sprintf("Failed to get 2FA details for user: %s", userId), "error", err)
+		slog.ErrorContext(ctx, fmt.Sprintf("Failed to get 2FA details for user: %d", userId), "error", err)
 		return httperror.New(httperror.InvalidTwoFA)
 	}
 	is2FAValid, err := totp.ValidateCustom(passcode, twoFADetails.Secret, time.Now(), totp.ValidateOpts{
@@ -86,15 +86,15 @@ func (s *service) Remove2FA(ctx context.Context, userId int64, passcode string) 
 		Algorithm: otp.AlgorithmSHA1, // standard
 	})
 	if err != nil {
-		slog.ErrorContext(ctx, fmt.Sprintf("Error during 2FA validation for user: %s", userId), "error", err)
+		slog.ErrorContext(ctx, fmt.Sprintf("Error during 2FA validation for user: %d", userId), "error", err)
 		return httperror.New(httperror.InvalidTwoFA)
 	}
 	if !is2FAValid {
-		slog.ErrorContext(ctx, fmt.Sprintf("Invalid 2FA code for user: %s", userId), "error", err)
+		slog.ErrorContext(ctx, fmt.Sprintf("Invalid 2FA code for user: %d", userId), "error", err)
 		return httperror.New(httperror.InvalidTwoFA)
 	}
 	if err = s.query.Delete2FA(ctx, Delete2FAParams{UserID: userId, Secret: twoFADetails.Secret}); err != nil {
-		slog.ErrorContext(ctx, fmt.Sprintf("Failed to delete 2FA setup for user: %s", userId), "error", err)
+		slog.ErrorContext(ctx, fmt.Sprintf("Failed to delete 2FA setup for user: %d", userId), "error", err)
 		return err
 	}
 	return nil

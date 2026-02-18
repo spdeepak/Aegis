@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -383,18 +382,14 @@ func TestService_Login2FA_NOK_UserNotExist(t *testing.T) {
 
 	//2FA
 	twoFAQuery := twoFA.NewMockQuerier(t)
-	twoFAQuery.On("Get2FADetails", ctx, mock.MatchedBy(func(id pgtype.UUID) bool {
-		return id.Valid
-	})).Return(twoFA.Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
+	twoFAQuery.On("Get2FADetails", ctx, userId).Return(twoFA.Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
 	twoFAService := twoFA.NewService("go-jwt-server", twoFAQuery)
 
 	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-20*time.Second))
 	assert.NoError(t, err)
 
 	userQuery := NewMockQuerier(t)
-	userQuery.On("GetUserById", ctx, mock.MatchedBy(func(id pgtype.UUID) bool {
-		return id.Valid
-	})).Return(User{}, errors.New("no rows in result set"))
+	userQuery.On("GetUserById", ctx, userId).Return(User{}, errors.New("no rows in result set"))
 
 	userService := NewService(userQuery, twoFAService, nil)
 
@@ -419,18 +414,14 @@ func TestService_Login2FA_NOK_UserGetError(t *testing.T) {
 
 	//2FA
 	twoFAQuery := twoFA.NewMockQuerier(t)
-	twoFAQuery.On("Get2FADetails", ctx, mock.MatchedBy(func(id pgtype.UUID) bool {
-		return id.Valid
-	})).Return(twoFA.Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
+	twoFAQuery.On("Get2FADetails", ctx, userId).Return(twoFA.Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
 	twoFAService := twoFA.NewService("go-jwt-server", twoFAQuery)
 
 	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-20*time.Second))
 	assert.NoError(t, err)
 
 	userQuery := NewMockQuerier(t)
-	userQuery.On("GetUserById", ctx, mock.MatchedBy(func(id pgtype.UUID) bool {
-		return id.Valid
-	})).Return(User{}, errors.New("error"))
+	userQuery.On("GetUserById", ctx, userId).Return(User{}, errors.New("error"))
 
 	userService := NewService(userQuery, twoFAService, nil)
 
@@ -455,9 +446,7 @@ func TestService_Login2FA_NOK_Old2FACode(t *testing.T) {
 
 	//2FA
 	twoFAQuery := twoFA.NewMockQuerier(t)
-	twoFAQuery.On("Get2FADetails", ctx, mock.MatchedBy(func(id pgtype.UUID) bool {
-		return id.Valid
-	})).Return(twoFA.Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
+	twoFAQuery.On("Get2FADetails", ctx, userId).Return(twoFA.Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
 	twoFAService := twoFA.NewService("go-jwt-server", twoFAQuery)
 
 	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-60*time.Second))

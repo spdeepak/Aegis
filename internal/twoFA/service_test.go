@@ -38,7 +38,7 @@ func TestService_Verify2FALogin_OK(t *testing.T) {
 
 	//2FA
 	twoFAQuery := NewMockQuerier(t)
-	twoFAQuery.On("Get2FADetails", ctx, 99999999).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
+	twoFAQuery.On("Get2FADetails", ctx, int64(99999999)).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
 	otpService := NewService("go-jwt-server", twoFAQuery)
 
 	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-20*time.Second))
