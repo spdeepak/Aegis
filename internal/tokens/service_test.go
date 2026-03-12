@@ -17,7 +17,7 @@ import (
 func TestService_GenerateTokenPair(t *testing.T) {
 	secret := "JWT_$€CR€T"
 	query := NewMockQuerier(t)
-	query.On("SaveToken", mock.Anything, mock.Anything).Return(nil)
+	query.EXPECT().SaveToken(mock.Anything, mock.Anything).Return(nil)
 	tokenService := NewService(query, []byte(secret), "")
 
 	user := User{
@@ -49,7 +49,7 @@ func TestService_GenerateTokenPair(t *testing.T) {
 func TestService_ValidateRefreshToken_OK(t *testing.T) {
 	secret := "JWT_$€CR€T"
 	query := NewMockQuerier(t)
-	query.On("SaveToken", mock.Anything, mock.Anything).Return(nil)
+	query.EXPECT().SaveToken(mock.Anything, mock.Anything).Return(nil)
 	tokenService := NewService(query, []byte(secret), "")
 
 	user := User{
@@ -82,7 +82,7 @@ func TestService_ValidateRefreshToken_OK(t *testing.T) {
 		UserAgent:    "test",
 		DeviceName:   "",
 	}
-	query.On("IsRefreshValid", ctx, refreshValidParams).Return(int32(1), nil)
+	query.EXPECT().IsRefreshValid(ctx, refreshValidParams).Return(int32(1), nil)
 
 	claims, err := tokenService.ValidateRefreshToken(ctx, "192.168.1.100", api.RefreshParams{XLoginSource: "api", UserAgent: "test"}, response.RefreshToken)
 	assert.NoError(t, err)
@@ -92,7 +92,7 @@ func TestService_ValidateRefreshToken_OK(t *testing.T) {
 func TestService_ValidateRefreshToken_NOK_AlreadyRevoked(t *testing.T) {
 	secret := "JWT_$€CR€T"
 	query := NewMockQuerier(t)
-	query.On("SaveToken", mock.Anything, mock.Anything).Return(nil)
+	query.EXPECT().SaveToken(mock.Anything, mock.Anything).Return(nil)
 	tokenService := NewService(query, []byte(secret), "")
 
 	user := User{
@@ -126,7 +126,7 @@ func TestService_ValidateRefreshToken_NOK_AlreadyRevoked(t *testing.T) {
 		DeviceName:   "",
 	}
 
-	query.On("IsRefreshValid", ctx, refreshValidParams).Return(int32(0), nil)
+	query.EXPECT().IsRefreshValid(ctx, refreshValidParams).Return(int32(0), nil)
 
 	claims, err := tokenService.ValidateRefreshToken(ctx, "192.168.1.100", api.RefreshParams{XLoginSource: "api", UserAgent: "test"}, response.RefreshToken)
 	assert.Error(t, err)
@@ -136,7 +136,7 @@ func TestService_ValidateRefreshToken_NOK_AlreadyRevoked(t *testing.T) {
 func TestService_ValidateRefreshToken_NOK(t *testing.T) {
 	secret := "JWT_$€CR€T"
 	query := NewMockQuerier(t)
-	query.On("SaveToken", mock.Anything, mock.Anything).Return(nil)
+	query.EXPECT().SaveToken(mock.Anything, mock.Anything).Return(nil)
 	tokenService := NewService(query, []byte(secret), "")
 
 	user := User{
@@ -174,7 +174,7 @@ func TestService_ValidateRefreshToken_NOK(t *testing.T) {
 func TestService_RevokeAllTokens_OK(t *testing.T) {
 	secret := "JWT_$€CR€T"
 	query := NewMockQuerier(t)
-	query.On("RevokeAllTokens", mock.Anything, "first.last@example.com").Return(nil)
+	query.EXPECT().RevokeAllTokens(mock.Anything, "first.last@example.com").Return(nil)
 	service := NewService(query, []byte(secret), "")
 
 	w := httptest.NewRecorder()
@@ -186,7 +186,7 @@ func TestService_RevokeAllTokens_OK(t *testing.T) {
 func TestService_RevokeAllTokens_NOK(t *testing.T) {
 	secret := "JWT_$€CR€T"
 	query := NewMockQuerier(t)
-	query.On("RevokeAllTokens", mock.Anything, "first.last@example.com").Return(errors.New("error"))
+	query.EXPECT().RevokeAllTokens(mock.Anything, "first.last@example.com").Return(errors.New("error"))
 	tokenService := NewService(query, []byte(secret), "")
 
 	w := httptest.NewRecorder()
@@ -201,7 +201,7 @@ func TestService_RevokeAllTokens_NOK(t *testing.T) {
 func TestService_RevokeRefreshToken_OK(t *testing.T) {
 	secret := "JWT_$€CR€T"
 	query := NewMockQuerier(t)
-	query.On("SaveToken", mock.Anything, mock.Anything).Return(nil)
+	query.EXPECT().SaveToken(mock.Anything, mock.Anything).Return(nil)
 	tokenService := NewService(query, []byte(secret), "")
 
 	user := User{
@@ -229,7 +229,7 @@ func TestService_RevokeRefreshToken_OK(t *testing.T) {
 	assert.NotEmpty(t, response.RefreshToken)
 
 	hashedRefreshToken := hash(response.RefreshToken)
-	query.On("RevokeRefreshToken", ctx, hashedRefreshToken).Return(nil)
+	query.EXPECT().RevokeRefreshToken(ctx, hashedRefreshToken).Return(nil)
 
 	err = tokenService.RevokeRefreshToken(ctx, api.RevokeRefreshTokenParams{}, api.RevokeCurrentSession{RefreshToken: response.RefreshToken})
 	assert.NoError(t, err)
@@ -238,7 +238,7 @@ func TestService_RevokeRefreshToken_OK(t *testing.T) {
 func TestService_RevokeRefreshToken_NOK_RefreshTokenInvalid(t *testing.T) {
 	secret := "JWT_$€CR€T"
 	query := NewMockQuerier(t)
-	query.On("SaveToken", mock.Anything, mock.Anything).Return(nil)
+	query.EXPECT().SaveToken(mock.Anything, mock.Anything).Return(nil)
 	tokenService := NewService(query, []byte(secret), "")
 
 	user := User{
@@ -266,7 +266,7 @@ func TestService_RevokeRefreshToken_NOK_RefreshTokenInvalid(t *testing.T) {
 	assert.NotEmpty(t, response.RefreshToken)
 
 	hashedRefreshToken := hash(response.RefreshToken)
-	query.On("RevokeRefreshToken", ctx, hashedRefreshToken).Return(errors.New("sql: no rows in result set"))
+	query.EXPECT().RevokeRefreshToken(ctx, hashedRefreshToken).Return(errors.New("sql: no rows in result set"))
 
 	err = tokenService.RevokeRefreshToken(ctx, api.RevokeRefreshTokenParams{}, api.RevokeCurrentSession{RefreshToken: response.RefreshToken})
 	assert.Error(t, err)
@@ -278,7 +278,7 @@ func TestService_RevokeRefreshToken_NOK_RefreshTokenInvalid(t *testing.T) {
 func TestService_RevokeRefreshToken_NOK_UnknownDBError(t *testing.T) {
 	secret := "JWT_$€CR€T"
 	query := NewMockQuerier(t)
-	query.On("SaveToken", mock.Anything, mock.Anything).Return(nil)
+	query.EXPECT().SaveToken(mock.Anything, mock.Anything).Return(nil)
 	tokenService := NewService(query, []byte(secret), "")
 
 	user := User{
@@ -306,7 +306,7 @@ func TestService_RevokeRefreshToken_NOK_UnknownDBError(t *testing.T) {
 	assert.NotEmpty(t, response.RefreshToken)
 
 	hashedRefreshToken := hash(response.RefreshToken)
-	query.On("RevokeRefreshToken", ctx, hashedRefreshToken).Return(errors.New("error"))
+	query.EXPECT().RevokeRefreshToken(ctx, hashedRefreshToken).Return(errors.New("error"))
 
 	err = tokenService.RevokeRefreshToken(ctx, api.RevokeRefreshTokenParams{}, api.RevokeCurrentSession{RefreshToken: response.RefreshToken})
 	assert.Error(t, err)
@@ -315,7 +315,7 @@ func TestService_RevokeRefreshToken_NOK_UnknownDBError(t *testing.T) {
 func TestService_RefreshAndInvalidateToken_OK(t *testing.T) {
 	secret := "JWT_$€CR€T"
 	query := NewMockQuerier(t)
-	query.On("SaveToken", mock.Anything, mock.Anything).Return(nil)
+	query.EXPECT().SaveToken(mock.Anything, mock.Anything).Return(nil)
 	tokenService := NewService(query, []byte(secret), "")
 
 	user := User{
@@ -345,7 +345,7 @@ func TestService_RefreshAndInvalidateToken_OK(t *testing.T) {
 	hashedRefreshToken := hash(response.RefreshToken)
 	var newBearerToken string
 	var newRefreshToken string
-	query.On("RefreshAndInvalidateToken", ctx, mock.MatchedBy(func(params RefreshAndInvalidateTokenParams) bool {
+	query.EXPECT().RefreshAndInvalidateToken(ctx, mock.MatchedBy(func(params RefreshAndInvalidateTokenParams) bool {
 		newBearerToken = params.NewToken
 		newRefreshToken = params.NewRefreshToken
 		return len(params.NewToken) > 0 &&
@@ -370,7 +370,7 @@ func TestService_RefreshAndInvalidateToken_OK(t *testing.T) {
 func TestService_RefreshAndInvalidateToken_NOK_InvalidationFailed(t *testing.T) {
 	secret := "JWT_$€CR€T"
 	query := NewMockQuerier(t)
-	query.On("SaveToken", mock.Anything, mock.Anything).Return(nil)
+	query.EXPECT().SaveToken(mock.Anything, mock.Anything).Return(nil)
 	tokenService := NewService(query, []byte(secret), "")
 
 	user := User{
@@ -400,7 +400,7 @@ func TestService_RefreshAndInvalidateToken_NOK_InvalidationFailed(t *testing.T) 
 	hashedRefreshToken := hash(response.RefreshToken)
 	var newBearerToken string
 	var newRefreshToken string
-	query.On("RefreshAndInvalidateToken", ctx, mock.MatchedBy(func(params RefreshAndInvalidateTokenParams) bool {
+	query.EXPECT().RefreshAndInvalidateToken(ctx, mock.MatchedBy(func(params RefreshAndInvalidateTokenParams) bool {
 		newBearerToken = params.NewToken
 		newRefreshToken = params.NewRefreshToken
 		return len(params.NewToken) > 0 &&
@@ -438,7 +438,7 @@ func TestService_ListActiveSessions_OK(t *testing.T) {
 			UserAgent:        "user-agent",
 		},
 	}
-	query.On("ListAllActiveSessions", ctx, "first.last@example.com").Return(queryResponse, nil)
+	query.EXPECT().ListAllActiveSessions(ctx, "first.last@example.com").Return(queryResponse, nil)
 	secret := "SOME_RANDOM_SECRET"
 	tokenService := NewService(query, []byte(secret), "")
 
@@ -457,7 +457,7 @@ func TestService_ListActiveSessions_NOK_DBQueryFail(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
 	query := NewMockQuerier(t)
-	query.On("ListAllActiveSessions", ctx, "first.last@example.com").Return(nil, errors.New("errror"))
+	query.EXPECT().ListAllActiveSessions(ctx, "first.last@example.com").Return(nil, errors.New("errror"))
 	secret := "SOME_RANDOM_SECRET"
 	tokenService := NewService(query, []byte(secret), "")
 

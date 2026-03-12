@@ -38,7 +38,7 @@ func TestService_Verify2FALogin_OK(t *testing.T) {
 
 	//2FA
 	twoFAQuery := NewMockQuerier(t)
-	twoFAQuery.On("Get2FADetails", ctx, int64(99999999)).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
+	twoFAQuery.EXPECT().Get2FADetails(ctx, int64(99999999)).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
 	otpService := NewService("go-jwt-server", twoFAQuery)
 
 	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-20*time.Second))
@@ -53,7 +53,7 @@ func TestService_Verify2FALogin_NOK_MinuteOldPasscode(t *testing.T) {
 	ctx, _ := gin.CreateTestContext(w)
 	userId := int64(99999999)
 	query := NewMockQuerier(t)
-	query.On("Get2FADetails", ctx, userId).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
+	query.EXPECT().Get2FADetails(ctx, userId).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
 	otpService := NewService("go-jwt-server", query)
 
 	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-60*time.Second))
@@ -68,7 +68,7 @@ func TestService_Verify2FALogin_NOK_NotFoundInDB(t *testing.T) {
 	ctx, _ := gin.CreateTestContext(w)
 	userId := int64(99999999)
 	query := NewMockQuerier(t)
-	query.On("Get2FADetails", ctx, userId).Return(Users2fa{}, errors.New("error"))
+	query.EXPECT().Get2FADetails(ctx, userId).Return(Users2fa{}, errors.New("error"))
 	otpService := NewService("go-jwt-server", query)
 
 	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-60*time.Second))
@@ -83,8 +83,8 @@ func TestService_Remove2FA_OK(t *testing.T) {
 	ctx, _ := gin.CreateTestContext(w)
 	userId := int64(99999999)
 	query := NewMockQuerier(t)
-	query.On("Get2FADetails", ctx, userId).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
-	query.On("Delete2FA", ctx, Delete2FAParams{UserID: userId, Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}).Return(nil)
+	query.EXPECT().Get2FADetails(ctx, userId).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
+	query.EXPECT().Delete2FA(ctx, Delete2FAParams{UserID: userId, Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}).Return(nil)
 	otpService := NewService("go-jwt-server", query)
 
 	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-20*time.Second))
@@ -98,7 +98,7 @@ func TestService_Remove2FA_NOK_MinuteOldPasscode(t *testing.T) {
 	ctx, _ := gin.CreateTestContext(w)
 	userId := int64(99999999)
 	query := NewMockQuerier(t)
-	query.On("Get2FADetails", ctx, userId).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
+	query.EXPECT().Get2FADetails(ctx, userId).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
 	otpService := NewService("go-jwt-server", query)
 
 	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-60*time.Second))
@@ -112,7 +112,7 @@ func TestService_Remove2FA_NOK_NotFoundInDB(t *testing.T) {
 	ctx, _ := gin.CreateTestContext(w)
 	userId := int64(99999999)
 	query := NewMockQuerier(t)
-	query.On("Get2FADetails", ctx, userId).Return(Users2fa{}, errors.New("error"))
+	query.EXPECT().Get2FADetails(ctx, userId).Return(Users2fa{}, errors.New("error"))
 	otpService := NewService("go-jwt-server", query)
 
 	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-60*time.Second))
@@ -126,8 +126,8 @@ func TestService_Remove2FA_NOK_DeleteInDB(t *testing.T) {
 	ctx, _ := gin.CreateTestContext(w)
 	userId := int64(99999999)
 	query := NewMockQuerier(t)
-	query.On("Get2FADetails", ctx, userId).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
-	query.On("Delete2FA", ctx, Delete2FAParams{UserID: userId, Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}).Return(errors.New("error"))
+	query.EXPECT().Get2FADetails(ctx, userId).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
+	query.EXPECT().Delete2FA(ctx, Delete2FAParams{UserID: userId, Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}).Return(errors.New("error"))
 	otpService := NewService("go-jwt-server", query)
 
 	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-20*time.Second))

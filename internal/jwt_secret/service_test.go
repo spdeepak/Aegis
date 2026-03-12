@@ -23,7 +23,7 @@ func TestService_GetOrCreateSecret_OK_SecretInDB(t *testing.T) {
 		IsValid:    true,
 		CreatedAt:  time.Now(),
 	}
-	query.On("GetDefaultSecret", mock.Anything).Return(jwtSecret, nil)
+	query.EXPECT().GetDefaultSecret(mock.Anything).Return(jwtSecret, nil)
 	jwtStorage := NewStorage(query)
 	tokenConfig := config.Token{
 		MasterKey: "SldUX01AJFTigqxyX0vigqx5X0kkX+KCrF9i4oKsJFQ=",
@@ -37,8 +37,8 @@ func TestService_GetOrCreateSecret_OK_SecretInDB(t *testing.T) {
 
 func TestService_GetOrCreateSecret_OK_SecretNotInDBMasterKeyPresent(t *testing.T) {
 	query := NewMockQuerier(t)
-	query.On("GetDefaultSecret", mock.Anything).Return(JwtSecret{}, errors.New("no rows in result set"))
-	query.On("CreateDefaultSecret", mock.Anything, mock.MatchedBy(func(base64EncodedEncryptedSecret string) bool {
+	query.EXPECT().GetDefaultSecret(mock.Anything).Return(JwtSecret{}, errors.New("no rows in result set"))
+	query.EXPECT().CreateDefaultSecret(mock.Anything, mock.MatchedBy(func(base64EncodedEncryptedSecret string) bool {
 		key, err := base64.StdEncoding.DecodeString(base64EncodedEncryptedSecret)
 		return err == nil && string(key) != ""
 	})).Return(nil)
@@ -61,7 +61,7 @@ func TestService_GetOrCreateSecret_NOK_SecretInDB_MasterKeyNotSet(t *testing.T) 
 			IsValid:    true,
 			CreatedAt:  time.Now(),
 		}
-		query.On("GetDefaultSecret", mock.Anything).Return(jwtSecret, nil)
+		query.EXPECT().GetDefaultSecret(mock.Anything).Return(jwtSecret, nil)
 		jwtStorage := NewStorage(query)
 		tokenConfig := config.Token{}
 		GetOrCreateSecret(tokenConfig, jwtStorage)
@@ -83,7 +83,7 @@ func TestService_GetOrCreateSecret_NOK_SecretInDB_MasterKeyTooLong(t *testing.T)
 			IsValid:    true,
 			CreatedAt:  time.Now(),
 		}
-		query.On("GetDefaultSecret", mock.Anything).Return(jwtSecret, nil)
+		query.EXPECT().GetDefaultSecret(mock.Anything).Return(jwtSecret, nil)
 		jwtStorage := NewStorage(query)
 		tokenConfig := config.Token{
 			MasterKey: base64.StdEncoding.EncodeToString([]byte("JWT_M@$T€r_K€y_I$_Th€_b€$T")),
@@ -102,7 +102,7 @@ func TestService_GetOrCreateSecret_OK_SecretSetViaEnv(t *testing.T) {
 		Secret: "SldUXyTigqxjUuKCrHQ=",
 	}
 	query := NewMockQuerier(t)
-	query.On("GetDefaultSecret", mock.Anything).Return(JwtSecret{}, errors.New("no rows in result set"))
+	query.EXPECT().GetDefaultSecret(mock.Anything).Return(JwtSecret{}, errors.New("no rows in result set"))
 	jwtStorage := NewStorage(query)
 	secretBytes := GetOrCreateSecret(tokenConfig, jwtStorage)
 	assert.Equal(t, "JWT_$€cR€t", string(secretBytes))
@@ -114,7 +114,7 @@ func TestService_GetOrCreateSecret_NOK_SecretSetViaEnvCorrupted(t *testing.T) {
 			Secret: "SldUXyTigqxjUuKCrHQ",
 		}
 		query := NewMockQuerier(t)
-		query.On("GetDefaultSecret", mock.Anything).Return(JwtSecret{}, errors.New("no rows in result set"))
+		query.EXPECT().GetDefaultSecret(mock.Anything).Return(JwtSecret{}, errors.New("no rows in result set"))
 		jwtStorage := NewStorage(query)
 		GetOrCreateSecret(tokenConfig, jwtStorage)
 	}
@@ -129,7 +129,7 @@ func TestService_GetOrCreateSecret_NOK_SecretNotSet(t *testing.T) {
 	if os.Getenv("FATAL_TEST") == "1" {
 		tokenConfig := config.Token{}
 		query := NewMockQuerier(t)
-		query.On("GetDefaultSecret", mock.Anything).Return(JwtSecret{}, errors.New("no rows in result set"))
+		query.EXPECT().GetDefaultSecret(mock.Anything).Return(JwtSecret{}, errors.New("no rows in result set"))
 		jwtStorage := NewStorage(query)
 		GetOrCreateSecret(tokenConfig, jwtStorage)
 	}

@@ -15,7 +15,7 @@ func TestStorage_saveDefaultSecret_OK_DefaultSecretExists(t *testing.T) {
 	ctx := context.Background()
 	secret := "JWT_$€CR€T"
 	query := NewMockQuerier(t)
-	query.On("CreateDefaultSecret", ctx, secret).Return(nil)
+	query.EXPECT().CreateDefaultSecret(ctx, secret).Return(nil)
 	storage := NewStorage(query)
 
 	err := storage.saveDefaultSecret(ctx, secret)
@@ -27,8 +27,8 @@ func TestStorage_saveDefaultSecret_NOK_DefaultSecretCreateFail(t *testing.T) {
 		ctx := context.Background()
 		secret := "JWT_$€CR€T"
 		query := NewMockQuerier(t)
-		query.On("GetDefaultSecret", ctx).Return(JwtSecret{Secret: secret}, errors.New("error"))
-		query.On("CreateDefaultSecret", ctx, secret).Return(errors.New("error"))
+		query.EXPECT().GetDefaultSecret(ctx).Return(JwtSecret{Secret: secret}, errors.New("error"))
+		query.EXPECT().CreateDefaultSecret(ctx, secret).Return(errors.New("error"))
 		storage := NewStorage(query)
 		storage.saveDefaultSecret(context.Background(), secret)
 		return
@@ -52,7 +52,7 @@ func TestStorage_getDefaultEncryptedSecret_OK(t *testing.T) {
 		IsValid:    true,
 		CreatedAt:  time.Now(),
 	}
-	query.On("GetDefaultSecret", ctx).Return(jwtSecret, nil)
+	query.EXPECT().GetDefaultSecret(ctx).Return(jwtSecret, nil)
 	storage := NewStorage(query)
 
 	jwt, err := storage.getDefaultEncryptedSecret(ctx)
@@ -65,7 +65,7 @@ func TestStorage_getDefaultEncryptedSecret_NOK(t *testing.T) {
 	query := NewMockQuerier(t)
 	ctx := context.Background()
 	err := errors.New("error")
-	query.On("GetDefaultSecret", ctx).Return(JwtSecret{}, err)
+	query.EXPECT().GetDefaultSecret(ctx).Return(JwtSecret{}, err)
 	storage := NewStorage(query)
 
 	jwt, err := storage.getDefaultEncryptedSecret(ctx)
