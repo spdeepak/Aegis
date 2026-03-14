@@ -10,7 +10,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 
-	"github.com/spdeepak/go-jwt-server/config"
+	"github.com/spdeepak/aegis/config"
 )
 
 func RunMigrations(cfg config.PostgresConfig) error {

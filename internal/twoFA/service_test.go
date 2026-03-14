@@ -10,7 +10,7 @@ import (
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/spdeepak/go-jwt-server/api"
+	"github.com/spdeepak/aegis/api"
 )
 
 func TestService_GenerateSecret_OK(t *testing.T) {

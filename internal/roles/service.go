@@ -6,8 +6,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/spdeepak/go-jwt-server/api"
-	"github.com/spdeepak/go-jwt-server/internal/error"
+	"github.com/spdeepak/aegis/api"
+	"github.com/spdeepak/aegis/internal/error"
 )
 
 type service struct {

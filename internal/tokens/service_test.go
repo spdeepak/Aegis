@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/spdeepak/go-jwt-server/api"
-	"github.com/spdeepak/go-jwt-server/internal/error"
+	"github.com/spdeepak/aegis/api"
+	"github.com/spdeepak/aegis/internal/error"
 )
 
 func TestService_GenerateTokenPair(t *testing.T) {

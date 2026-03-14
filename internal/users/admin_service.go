@@ -6,8 +6,8 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 
-	"github.com/spdeepak/go-jwt-server/api"
-	httperror "github.com/spdeepak/go-jwt-server/internal/error"
+	"github.com/spdeepak/aegis/api"
+	httperror "github.com/spdeepak/aegis/internal/error"
 )
 
 type (

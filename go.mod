@@ -1,6 +1,6 @@
-module github.com/spdeepak/go-jwt-server
+module github.com/spdeepak/aegis
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/fsnotify/fsnotify v1.9.0
