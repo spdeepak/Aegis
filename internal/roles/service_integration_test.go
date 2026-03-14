@@ -11,11 +11,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/spdeepak/go-jwt-server/api"
-	"github.com/spdeepak/go-jwt-server/config"
-	"github.com/spdeepak/go-jwt-server/internal/db"
-	"github.com/spdeepak/go-jwt-server/internal/permissions"
-	permissionsRepo "github.com/spdeepak/go-jwt-server/internal/permissions"
+	"github.com/spdeepak/aegis/api"
+	"github.com/spdeepak/aegis/config"
+	"github.com/spdeepak/aegis/internal/db"
+	"github.com/spdeepak/aegis/internal/permissions"
+	permissionsRepo "github.com/spdeepak/aegis/internal/permissions"
 )
 
 var roleStorage Querier

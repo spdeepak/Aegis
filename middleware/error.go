@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/spdeepak/go-jwt-server/internal/error"
+	"github.com/spdeepak/aegis/internal/error"
 )
 
 func ErrorMiddleware(c *gin.Context) {

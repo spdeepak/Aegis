@@ -8,7 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/spdeepak/go-jwt-server/config"
+	"github.com/spdeepak/aegis/config"
 )
 
 func Connect(dbCfg config.PostgresConfig) *pgxpool.Pool {

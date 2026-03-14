@@ -10,7 +10,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/spdeepak/go-jwt-server/config"
+	"github.com/spdeepak/aegis/config"
 )
 
 func GetOrCreateSecret(token config.Token, storage Storage) []byte {

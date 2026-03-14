@@ -12,8 +12,8 @@ import (
 	"github.com/skip2/go-qrcode"
 	_ "github.com/skip2/go-qrcode"
 
-	"github.com/spdeepak/go-jwt-server/api"
-	"github.com/spdeepak/go-jwt-server/internal/error"
+	"github.com/spdeepak/aegis/api"
+	"github.com/spdeepak/aegis/internal/error"
 )
 
 type service struct {

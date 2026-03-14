@@ -11,9 +11,9 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/prometheus/client_golang/prometheus"
 
-	"github.com/spdeepak/go-jwt-server/internal/error"
-	"github.com/spdeepak/go-jwt-server/internal/tokens"
-	"github.com/spdeepak/go-jwt-server/util"
+	"github.com/spdeepak/aegis/internal/error"
+	"github.com/spdeepak/aegis/internal/tokens"
+	"github.com/spdeepak/aegis/util"
 )
 
 var (

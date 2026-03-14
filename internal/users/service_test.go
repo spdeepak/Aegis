@@ -11,10 +11,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/spdeepak/go-jwt-server/api"
-	"github.com/spdeepak/go-jwt-server/internal/error"
-	"github.com/spdeepak/go-jwt-server/internal/tokens"
-	"github.com/spdeepak/go-jwt-server/internal/twoFA"
+	"github.com/spdeepak/aegis/api"
+	"github.com/spdeepak/aegis/internal/error"
+	"github.com/spdeepak/aegis/internal/tokens"
+	"github.com/spdeepak/aegis/internal/twoFA"
 )
 
 func TestService_Signup_No2FA_OK(t *testing.T) {

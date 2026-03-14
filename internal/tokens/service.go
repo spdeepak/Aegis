@@ -13,8 +13,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 
-	"github.com/spdeepak/go-jwt-server/api"
-	"github.com/spdeepak/go-jwt-server/internal/error"
+	"github.com/spdeepak/aegis/api"
+	"github.com/spdeepak/aegis/internal/error"
 )
 
 const (

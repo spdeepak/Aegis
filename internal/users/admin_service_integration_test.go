@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/spdeepak/go-jwt-server/api"
-	"github.com/spdeepak/go-jwt-server/internal/db"
+	"github.com/spdeepak/aegis/api"
+	"github.com/spdeepak/aegis/internal/db"
 )
 
 func TestAdminService_LockUserById_OK(t *testing.T) {

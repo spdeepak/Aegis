@@ -5,14 +5,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/spdeepak/go-jwt-server/api"
-	"github.com/spdeepak/go-jwt-server/internal/error"
-	"github.com/spdeepak/go-jwt-server/internal/permissions"
-	"github.com/spdeepak/go-jwt-server/internal/roles"
-	"github.com/spdeepak/go-jwt-server/internal/tokens"
-	"github.com/spdeepak/go-jwt-server/internal/twoFA"
-	"github.com/spdeepak/go-jwt-server/internal/users"
-	"github.com/spdeepak/go-jwt-server/util"
+	"github.com/spdeepak/aegis/api"
+	"github.com/spdeepak/aegis/internal/error"
+	"github.com/spdeepak/aegis/internal/permissions"
+	"github.com/spdeepak/aegis/internal/roles"
+	"github.com/spdeepak/aegis/internal/tokens"
+	"github.com/spdeepak/aegis/internal/twoFA"
+	"github.com/spdeepak/aegis/internal/users"
+	"github.com/spdeepak/aegis/util"
 )
 
 const emailHeader = "User-Email"

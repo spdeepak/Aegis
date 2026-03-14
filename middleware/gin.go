@@ -14,7 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	ginmiddleware "github.com/oapi-codegen/gin-middleware"
 
-	httperror "github.com/spdeepak/go-jwt-server/internal/error"
+	httperror "github.com/spdeepak/aegis/internal/error"
 )
 
 var IgnorePaths = []string{

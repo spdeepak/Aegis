@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/spdeepak/go-jwt-server/config"
+	"github.com/spdeepak/aegis/config"
 )
 
 func TestService_GetOrCreateSecret_OK_SecretInDB(t *testing.T) {

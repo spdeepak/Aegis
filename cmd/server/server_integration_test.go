@@ -18,17 +18,17 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/spdeepak/go-jwt-server/api"
-	"github.com/spdeepak/go-jwt-server/config"
-	"github.com/spdeepak/go-jwt-server/internal/db"
-	"github.com/spdeepak/go-jwt-server/internal/error"
-	"github.com/spdeepak/go-jwt-server/internal/logging"
-	"github.com/spdeepak/go-jwt-server/internal/permissions"
-	"github.com/spdeepak/go-jwt-server/internal/roles"
-	"github.com/spdeepak/go-jwt-server/internal/tokens"
-	"github.com/spdeepak/go-jwt-server/internal/twoFA"
-	"github.com/spdeepak/go-jwt-server/internal/users"
-	"github.com/spdeepak/go-jwt-server/middleware"
+	"github.com/spdeepak/aegis/api"
+	"github.com/spdeepak/aegis/config"
+	"github.com/spdeepak/aegis/internal/db"
+	"github.com/spdeepak/aegis/internal/error"
+	"github.com/spdeepak/aegis/internal/logging"
+	"github.com/spdeepak/aegis/internal/permissions"
+	"github.com/spdeepak/aegis/internal/roles"
+	"github.com/spdeepak/aegis/internal/tokens"
+	"github.com/spdeepak/aegis/internal/twoFA"
+	"github.com/spdeepak/aegis/internal/users"
+	"github.com/spdeepak/aegis/middleware"
 )
 
 var roleQuery roles.Querier

@@ -19,7 +19,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.24
+          go-version: 1.25
           cache: true
 
       - name: Start dependency stack
@@ -85,7 +85,7 @@ jobs:
         run: echo "SHA_SHORT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
 
       - name: Build Docker image
-        run: docker build -t spdeepak/go-jwt-server:${{ env.SHA_SHORT }} .
+        run: docker build -t spdeepak/aegis:${{ env.SHA_SHORT }} .
 
   docker:
     permissions:
@@ -106,4 +106,4 @@ jobs:
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
       - name: Build and push multi-arch Docker image
-        run: docker buildx build --platform linux/amd64,linux/arm64 -t spdeepak/go-jwt-server:latest --push .
+        run: docker buildx build --platform linux/amd64,linux/arm64 -t spdeepak/aegis:latest --push .
