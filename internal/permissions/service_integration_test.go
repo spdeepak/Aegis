@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/spdeepak/aegis/api"
-	"github.com/spdeepak/aegis/config"
+	"github.com/spdeepak/aegis/internal/config"
 	"github.com/spdeepak/aegis/internal/db"
 )
 

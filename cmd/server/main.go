@@ -14,16 +14,16 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/spdeepak/aegis/api"
-	"github.com/spdeepak/aegis/config"
+	"github.com/spdeepak/aegis/internal/config"
 	"github.com/spdeepak/aegis/internal/db"
 	"github.com/spdeepak/aegis/internal/jwt_secret"
-	"github.com/spdeepak/aegis/internal/logging"
+	middleware2 "github.com/spdeepak/aegis/internal/middleware"
 	"github.com/spdeepak/aegis/internal/permissions"
 	"github.com/spdeepak/aegis/internal/roles"
 	"github.com/spdeepak/aegis/internal/tokens"
 	"github.com/spdeepak/aegis/internal/twoFA"
 	"github.com/spdeepak/aegis/internal/users"
-	"github.com/spdeepak/aegis/middleware"
+	"github.com/spdeepak/aegis/pkg/logging"
 )
 
 func main() {
@@ -68,16 +68,16 @@ func main() {
 	}
 	swagger.Servers = nil
 
-	authMiddleware := middleware.JWTAuthMiddleware(jwt_secret.GetOrCreateSecret(cfg.Token, jwtSecretStorage), cfg.Auth.SkipPaths, cfg.Token.Issuer)
+	authMiddleware := middleware2.JWTAuthMiddleware(jwt_secret.GetOrCreateSecret(cfg.Token, jwtSecretStorage), cfg.Auth.SkipPaths, cfg.Token.Issuer)
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
-	router.Use(middleware.MetricHandler(),
-		middleware.RequestValidator(swagger),
+	router.Use(middleware2.MetricHandler(),
+		middleware2.RequestValidator(swagger),
 		authMiddleware,
 		gin.Recovery(),
-		middleware.ErrorMiddleware,
-		middleware.GinLogger())
+		middleware2.ErrorMiddleware,
+		middleware2.GinLogger())
 	api.RegisterHandlers(router, server)
 
 	srv := &http.Server{
