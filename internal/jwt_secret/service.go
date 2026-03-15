@@ -10,7 +10,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/spdeepak/aegis/config"
+	"github.com/spdeepak/aegis/internal/config"
 )
 
 func GetOrCreateSecret(token config.Token, storage Storage) []byte {

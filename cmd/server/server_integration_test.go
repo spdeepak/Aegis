@@ -19,16 +19,16 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/spdeepak/aegis/api"
-	"github.com/spdeepak/aegis/config"
+	"github.com/spdeepak/aegis/internal/config"
 	"github.com/spdeepak/aegis/internal/db"
 	"github.com/spdeepak/aegis/internal/error"
-	"github.com/spdeepak/aegis/internal/logging"
+	middleware2 "github.com/spdeepak/aegis/internal/middleware"
 	"github.com/spdeepak/aegis/internal/permissions"
 	"github.com/spdeepak/aegis/internal/roles"
 	"github.com/spdeepak/aegis/internal/tokens"
 	"github.com/spdeepak/aegis/internal/twoFA"
 	"github.com/spdeepak/aegis/internal/users"
-	"github.com/spdeepak/aegis/middleware"
+	"github.com/spdeepak/aegis/pkg/logging"
 )
 
 var roleQuery roles.Querier
@@ -72,11 +72,11 @@ func TestMain(m *testing.M) {
 	swagger.Servers = nil
 	router = gin.New()
 	router.Use(
-		middleware.RequestValidator(swagger),
-		middleware.JWTAuthMiddleware([]byte("JWT_$€Cr€t"), nil, "test-issuer"),
+		middleware2.RequestValidator(swagger),
+		middleware2.JWTAuthMiddleware([]byte("JWT_$€Cr€t"), nil, "test-issuer"),
 		gin.Recovery(),
-		middleware.ErrorMiddleware,
-		middleware.GinLogger(),
+		middleware2.ErrorMiddleware,
+		middleware2.GinLogger(),
 	)
 	server := NewServer(userService, rolesService, permissionService, tokenService, twoFaService, adminService)
 	api.RegisterHandlers(router, server)

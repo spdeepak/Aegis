@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/spdeepak/aegis/api"
-	"github.com/spdeepak/aegis/config"
+	"github.com/spdeepak/aegis/internal/config"
 	"github.com/spdeepak/aegis/internal/db"
 	"github.com/spdeepak/aegis/internal/error"
 	"github.com/spdeepak/aegis/internal/permissions"

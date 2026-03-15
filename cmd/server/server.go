@@ -12,7 +12,7 @@ import (
 	"github.com/spdeepak/aegis/internal/tokens"
 	"github.com/spdeepak/aegis/internal/twoFA"
 	"github.com/spdeepak/aegis/internal/users"
-	"github.com/spdeepak/aegis/util"
+	"github.com/spdeepak/aegis/pkg/util"
 )
 
 const emailHeader = "User-Email"

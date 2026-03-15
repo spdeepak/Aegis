@@ -13,7 +13,7 @@ import (
 
 	"github.com/spdeepak/aegis/internal/error"
 	"github.com/spdeepak/aegis/internal/tokens"
-	"github.com/spdeepak/aegis/util"
+	"github.com/spdeepak/aegis/pkg/util"
 )
 
 var (
