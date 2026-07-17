@@ -12,8 +12,9 @@ WORKDIR /app
 COPY apps/server/go.mod apps/server/go.sum ./apps/server/
 RUN cd apps/server && go mod download
 
+COPY Makefile ./
 COPY apps/server/ ./apps/server/
-RUN cd apps/server && go generate ./... && go build -v -o ../server ./cmd/server
+RUN make generate && cd apps/server && go build -v -o ../server ./cmd/server
 
 FROM gcr.io/distroless/static:nonroot
 
