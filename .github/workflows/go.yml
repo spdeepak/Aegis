@@ -25,25 +25,26 @@ jobs:
       - name: Start dependency stack
         run: |
           docker compose up -d --build
-          # optional: wait for health-checks
           docker compose ps
 
-      - name: Run Makefile pre-step
+      - name: Run code generation
         run: make generate
 
       - name: Build
         run: go build ./...
+        working-directory: apps/server
 
       - name: Test
         run: |
           go test -p 1 ./... -coverprofile=coverage.raw
           grep -vE "(mock|generated|cmd/main.go)" coverage.raw > coverage.out
+        working-directory: apps/server
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: coverage.out
+          files: apps/server/coverage.out
 
       - name: Shut down stack
         if: always()

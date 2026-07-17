@@ -1,0 +1,31 @@
+all: false
+dir: '{{.InterfaceDir}}'
+filename: "{{.InterfaceName | lower}}_mock.gen.go"
+force-file-write: true
+formatter: goimports
+include-auto-generated: true
+log-level: warn
+structname: "Mock{{.InterfaceName}}"
+pkgname: "{{.SrcPackageName}}"
+recursive: false
+require-template-schema-exists: false #This has to be set to false since we need interface of sqlc generated code
+template: testify
+packages:
+  github.com/spdeepak/aegis/server/internal/jwt_secret:
+    interfaces:
+      Querier:
+  github.com/spdeepak/aegis/server/internal/tokens:
+    interfaces:
+      Querier:
+  github.com/spdeepak/aegis/server/internal/permissions:
+    interfaces:
+      Querier:
+  github.com/spdeepak/aegis/server/internal/roles:
+    interfaces:
+      Querier:
+  github.com/spdeepak/aegis/server/internal/users:
+    interfaces:
+      Querier:
+  github.com/spdeepak/aegis/server/internal/twoFA:
+    interfaces:
+      Querier:

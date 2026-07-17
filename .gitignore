@@ -1,4 +1,16 @@
+# Go
 *.gen.go*
 vendor
+
+# Node.js
+node_modules/
+dist/
+
+# IDE
 .idea
+
+# Misc
 prometheus-data
+bin/
+coverage.out
+coverage.raw
