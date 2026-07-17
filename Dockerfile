@@ -9,18 +9,18 @@ ENV GOOS=linux
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
-RUN go mod download
+COPY apps/server/go.mod apps/server/go.sum ./apps/server/
+RUN cd apps/server && go mod download
 
 COPY Makefile ./
-COPY . .
-RUN make generate && go build -v -o server ./cmd/server
+COPY apps/server/ ./apps/server/
+RUN make generate && cd apps/server && go build -v -o ../server ./cmd/server
 
 FROM gcr.io/distroless/static:nonroot
 
 WORKDIR /app
-COPY --from=builder /app/server .
-COPY --from=builder /app/migrations ./migrations
+COPY --from=builder /app/apps/server .
+COPY --from=builder /app/apps/server/migrations ./migrations
 
 EXPOSE 8080
 

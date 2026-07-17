@@ -11,7 +11,7 @@ services:
       POSTGRES_PASSWORD: admin
       POSTGRES_DB: jwt_server
     volumes:
-      - ./migrations:/docker-entrypoint-initdb.d:ro
+      - ./apps/server/migrations:/docker-entrypoint-initdb.d:ro
     restart: unless-stopped
 
   prometheus:
@@ -20,7 +20,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./apps/server/configs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./prometheus-data:/prometheus
     restart: unless-stopped
 
@@ -30,7 +30,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./configs/grafana:/etc/grafana/provisioning:ro
+      - ./apps/server/configs/grafana:/etc/grafana/provisioning:ro
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin

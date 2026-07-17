@@ -1,0 +1,13 @@
+{
+  "private": true,
+  "workspaces": [
+    "apps/web",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace=@aegis/web",
+    "build:web": "npm run build --workspace=@aegis/web",
+    "generate:client": "npm run generate --workspace=@aegis/api-client",
+    "typecheck": "npm run typecheck --workspaces"
+  }
+}
