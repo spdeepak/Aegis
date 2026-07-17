@@ -108,3 +108,45 @@ jobs:
 
       - name: Build and push multi-arch Docker image
         run: docker buildx build --platform linux/amd64,linux/arm64 -t spdeepak/aegis:latest --push .
+
+  docker-web-build-test:
+    permissions:
+      contents: read
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract short SHA
+        id: vars
+        run: echo "SHA_SHORT=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Build frontend Docker image
+        run: docker build -f Dockerfile.web -t spdeepak/aegis-web:${{ env.SHA_SHORT }} .
+
+  docker-web:
+    permissions:
+      contents: read
+      packages: write
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Build and push multi-arch frontend Docker image
+        run: docker buildx build -f Dockerfile.web --platform linux/amd64,linux/arm64 -t spdeepak/aegis-web:latest --push .
