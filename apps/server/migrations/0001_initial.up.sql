@@ -159,7 +159,7 @@ CREATE TABLE IF NOT EXISTS user_security_actions
 
 -- Create Admin User
 INSERT INTO users(email, first_name, last_name, password, two_fa_enabled)
-VALUES ('admin@localhost', 'Admin', 'User', '$2a$10$dg5hjvb7RQOLP6uwXBQeweQhwnJZBbOBn7oQHf0fY80oxuHu9ess6', false);
+VALUES ('admin@localhost', 'Admin', 'User', '$2a$12$kFQQyKj3aGSv9GSGWL4vU.BGL8bBBm.szMd/nAZamCbuaj1oX7R3m', false);
 
 -- Create admin role and multiple permissions, assign them
 WITH new_role AS (
