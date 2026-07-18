@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -211,7 +212,7 @@ func loginOk(t *testing.T) {
 
 	email := "first.last@example.com"
 	userLogin := api.UserLogin{
-		Email:    email,
+		Email:    openapi_types.Email(email),
 		Password: "Som€_$trong_P@$$word",
 	}
 
@@ -237,7 +238,7 @@ func loginNokWrongPassword(t *testing.T) {
 	ctx, _ := gin.CreateTestContext(w)
 	email := "first.last@example.com"
 	userLogin := api.UserLogin{
-		Email:    email,
+		Email:    openapi_types.Email(email),
 		Password: "Som€_P@$$word",
 	}
 
@@ -262,7 +263,7 @@ func loginNOK(t *testing.T) {
 	ctx, _ := gin.CreateTestContext(w)
 	email := "first.last@example.com"
 	userLogin := api.UserLogin{
-		Email:    email,
+		Email:    openapi_types.Email(email),
 		Password: "Som€_$trong_P@$$word",
 	}
 
