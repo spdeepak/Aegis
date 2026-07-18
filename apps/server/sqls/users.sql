@@ -286,3 +286,8 @@ SELECT enable_user.id,
        sqlc.arg('user_agent')
 FROM enable_user
 RETURNING id;
+
+-- name: ChangePassword :exec
+UPDATE users
+    SET password = sqlc.arg('password')
+WHERE id = sqlc.arg('user_id') AND email = sqlc.arg('user_email');

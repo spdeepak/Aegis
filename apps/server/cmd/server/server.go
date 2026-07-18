@@ -66,7 +66,31 @@ func (s *Server) Signup(ctx *gin.Context, params api.SignupParams) {
 }
 
 func (s *Server) ChangePassword(ctx *gin.Context, params api.ChangePasswordParams) {
-
+	email, emailPresent := ctx.Get(emailHeader)
+	if !emailPresent {
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+	userId, userIdPresent := ctx.Get("User-ID")
+	if !userIdPresent {
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+	var changePassword api.ChangePassword
+	if err := ctx.ShouldBindJSON(&changePassword); err != nil {
+		ctx.Error(httperror.New(httperror.InvalidRequestBody))
+		return
+	}
+	if !util.PasswordValidator(changePassword.NewPassword) {
+		ctx.AbortWithError(http.StatusBadRequest, httperror.NewWithDescription("New password doesn't meet requirements", http.StatusBadRequest))
+		return
+	}
+	password, err := s.userService.ChangePassword(ctx, email.(string), userId.(int64), changePassword)
+	if err != nil {
+		ctx.Error(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, password)
 }
 
 func (s *Server) Login(ctx *gin.Context, params api.LoginParams) {
