@@ -17,7 +17,7 @@ import (
 	"github.com/spdeepak/aegis/server/internal/config"
 	"github.com/spdeepak/aegis/server/internal/db"
 	"github.com/spdeepak/aegis/server/internal/jwt_secret"
-	middleware2 "github.com/spdeepak/aegis/server/internal/middleware"
+	"github.com/spdeepak/aegis/server/internal/middleware"
 	"github.com/spdeepak/aegis/server/internal/permissions"
 	"github.com/spdeepak/aegis/server/internal/roles"
 	"github.com/spdeepak/aegis/server/internal/tokens"
@@ -68,16 +68,16 @@ func main() {
 	}
 	swagger.Servers = nil
 
-	authMiddleware := middleware2.JWTAuthMiddleware(jwt_secret.GetOrCreateSecret(cfg.Token, jwtSecretStorage), cfg.Auth.SkipPaths, cfg.Token.Issuer)
+	authMiddleware := middleware.JWTAuthMiddleware(jwt_secret.GetOrCreateSecret(cfg.Token, jwtSecretStorage), cfg.Auth.SkipPaths, cfg.Token.Issuer)
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
-	router.Use(middleware2.MetricHandler(),
-		middleware2.RequestValidator(swagger),
+	router.Use(middleware.MetricHandler(),
+		middleware.RequestValidator(swagger),
 		authMiddleware,
 		gin.Recovery(),
-		middleware2.ErrorMiddleware,
-		middleware2.GinLogger())
+		middleware.ErrorMiddleware,
+		middleware.GinLogger())
 	api.RegisterHandlers(router, server)
 
 	srv := &http.Server{

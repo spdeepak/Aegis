@@ -80,8 +80,12 @@ paths:
       responses:
         '200':
           description: OK
+        '400':
+          description: BAD_REQUEST
         '401':
           description: UNAUTHORISED
+        '403':
+          description: Forbidden
   /api/v1/auth/refresh:
     post:
       summary: Token refresh
@@ -89,8 +93,6 @@ paths:
       operationId: refresh
       tags:
         - Auth
-      security:
-        - BearerAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/LoginSource'
         - $ref: '#/components/parameters/UserAgent'
@@ -1051,7 +1053,7 @@ components:
       properties:
         email:
           type: string
-          pattern:
+          format: email
           example: first.last@example.com
         password:
           type: string
@@ -1065,6 +1067,10 @@ components:
           type: string
         newPassword:
           type: string
+        twoFACode:
+          type: string
+          pattern: '^\d{6}$'
+          example: '123456'
     LoginSuccessWithJWT:
       type: object
       required:

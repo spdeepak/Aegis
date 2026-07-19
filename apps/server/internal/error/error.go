@@ -45,6 +45,7 @@ const (
 	InvalidRequestBody       = "JWT0025"
 	UserNotFound             = "JWT0026"
 	UserOperationFailed      = "JWT0027"
+	TwoFARequired            = "JWT0028"
 )
 
 var httpErrors = map[string]HttpError{
@@ -159,6 +160,10 @@ var httpErrors = map[string]HttpError{
 	UserOperationFailed: {
 		StatusCode:  http.StatusExpectationFailed,
 		Description: "user account lock failed",
+	},
+	TwoFARequired: {
+		StatusCode:  http.StatusForbidden,
+		Description: "2FA code is required",
 	},
 }
 

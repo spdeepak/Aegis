@@ -48,15 +48,15 @@ func (s *Server) GetReady(ctx *gin.Context) {
 func (s *Server) Signup(ctx *gin.Context, params api.SignupParams) {
 	var signup api.UserSignup
 	if err := ctx.ShouldBindJSON(&signup); err != nil {
-		ctx.Error(httperror.New(httperror.InvalidRequestBody))
+		_ = ctx.Error(httperror.New(httperror.InvalidRequestBody))
 		return
 	}
 	if !util.PasswordValidator(signup.Password) {
-		ctx.AbortWithError(http.StatusBadRequest, httperror.NewWithDescription("Password doesn't meet requirements", http.StatusBadRequest))
+		_ = ctx.AbortWithError(http.StatusBadRequest, httperror.NewWithDescription("Password doesn't meet requirements", http.StatusBadRequest))
 		return
 	}
 	if res, err := s.userService.Signup(ctx, signup); err != nil {
-		ctx.AbortWithError(err.(httperror.HttpError).StatusCode, err)
+		_ = ctx.AbortWithError(err.(httperror.HttpError).StatusCode, err)
 		return
 	} else if res.QrImage != "" || res.Secret != "" {
 		ctx.JSON(http.StatusCreated, res)
@@ -66,18 +66,42 @@ func (s *Server) Signup(ctx *gin.Context, params api.SignupParams) {
 }
 
 func (s *Server) ChangePassword(ctx *gin.Context, params api.ChangePasswordParams) {
-
+	email, emailPresent := ctx.Get(emailHeader)
+	if !emailPresent {
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+	userId, userIdPresent := ctx.Get("User-ID")
+	if !userIdPresent {
+		ctx.Status(http.StatusBadRequest)
+		return
+	}
+	var changePassword api.ChangePassword
+	if err := ctx.ShouldBindJSON(&changePassword); err != nil {
+		_ = ctx.Error(httperror.New(httperror.InvalidRequestBody))
+		return
+	}
+	if !util.PasswordValidator(changePassword.NewPassword) {
+		_ = ctx.AbortWithError(http.StatusBadRequest, httperror.NewWithDescription("New password doesn't meet requirements", http.StatusBadRequest))
+		return
+	}
+	password, err := s.userService.ChangePassword(ctx, email.(string), userId.(int64), changePassword)
+	if err != nil {
+		_ = ctx.Error(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, password)
 }
 
 func (s *Server) Login(ctx *gin.Context, params api.LoginParams) {
 	var login api.UserLogin
 	if err := ctx.ShouldBindJSON(&login); err != nil {
-		ctx.Error(httperror.New(httperror.InvalidRequestBody))
+		_ = ctx.Error(httperror.New(httperror.InvalidRequestBody))
 		return
 	}
 
 	if response, err := s.userService.Login(ctx, params, login); err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	} else {
 		ctx.JSON(http.StatusOK, response)
@@ -88,12 +112,12 @@ func (s *Server) Login(ctx *gin.Context, params api.LoginParams) {
 func (s *Server) Refresh(ctx *gin.Context, params api.RefreshParams) {
 	var refresh api.Refresh
 	if err := ctx.ShouldBindJSON(&refresh); err != nil {
-		ctx.Error(httperror.New(httperror.InvalidRequestBody))
+		_ = ctx.Error(httperror.New(httperror.InvalidRequestBody))
 		return
 	}
 	response, err := s.userService.RefreshToken(ctx, params, refresh)
 	if err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		ctx.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
@@ -103,11 +127,11 @@ func (s *Server) Refresh(ctx *gin.Context, params api.RefreshParams) {
 func (s *Server) RevokeRefreshToken(ctx *gin.Context, params api.RevokeRefreshTokenParams) {
 	var revokeRefresh api.RevokeCurrentSession
 	if err := ctx.ShouldBindJSON(&revokeRefresh); err != nil {
-		ctx.Error(httperror.New(httperror.InvalidRequestBody))
+		_ = ctx.Error(httperror.New(httperror.InvalidRequestBody))
 		return
 	}
 	if err := s.tokenService.RevokeRefreshToken(ctx, params, revokeRefresh); err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.Status(http.StatusOK)
@@ -118,7 +142,7 @@ func (s *Server) RevokeAllTokens(ctx *gin.Context, params api.RevokeAllTokensPar
 	if email, present := ctx.Get(emailHeader); present {
 		err := s.tokenService.RevokeAllTokens(ctx, email.(string))
 		if err != nil {
-			ctx.Error(err)
+			_ = ctx.Error(err)
 			return
 		}
 		ctx.Status(http.StatusOK)
@@ -131,7 +155,7 @@ func (s *Server) GetAllSessions(ctx *gin.Context, params api.GetAllSessionsParam
 	if email, present := ctx.Get(emailHeader); present {
 		response, err := s.tokenService.ListActiveSessions(ctx, email.(string))
 		if err != nil {
-			ctx.Error(err)
+			_ = ctx.Error(err)
 			return
 		}
 		ctx.JSON(http.StatusOK, response)
@@ -145,7 +169,7 @@ func (s *Server) Create2FA(ctx *gin.Context, params api.Create2FAParams) {
 	if emailPresent {
 		response, err := s.twoFAService.Setup2FA(ctx, email.(string))
 		if err != nil {
-			ctx.Error(err)
+			_ = ctx.Error(err)
 			return
 		}
 		ctx.JSON(http.StatusCreated, response)
@@ -162,12 +186,12 @@ func (s *Server) Login2FA(ctx *gin.Context, params api.Login2FAParams) {
 	}
 	var verify2FARequest api.Login2FARequest
 	if err := ctx.ShouldBindJSON(&verify2FARequest); err != nil {
-		ctx.Error(httperror.New(httperror.InvalidRequestBody))
+		_ = ctx.Error(httperror.New(httperror.InvalidRequestBody))
 		return
 	}
 	response, err := s.userService.Login2FA(ctx, params, userId.(int64), verify2FARequest.TwoFACode)
 	if err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		ctx.AbortWithStatus(err.(httperror.HttpError).StatusCode)
 		return
 	}
@@ -183,12 +207,12 @@ func (s *Server) Remove2FA(ctx *gin.Context, params api.Remove2FAParams) {
 	}
 	var verify2FARequest api.Remove2FARequest
 	if err := ctx.ShouldBindJSON(&verify2FARequest); err != nil {
-		ctx.Error(httperror.New(httperror.InvalidRequestBody))
+		_ = ctx.Error(httperror.New(httperror.InvalidRequestBody))
 		return
 	}
 	err := s.twoFAService.Remove2FA(ctx, userId.(int64), verify2FARequest.TwoFACode)
 	if err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.Status(http.StatusOK)
@@ -203,12 +227,12 @@ func (s *Server) CreateNewRole(ctx *gin.Context, params api.CreateNewRoleParams)
 	}
 	var createRole api.CreateRole
 	if err := ctx.ShouldBindJSON(&createRole); err != nil {
-		ctx.Error(httperror.New(httperror.InvalidRequestBody))
+		_ = ctx.Error(httperror.New(httperror.InvalidRequestBody))
 		return
 	}
 	createNewRole, err := s.roleService.CreateNewRole(ctx, params, email.(string), createRole)
 	if err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.JSON(http.StatusCreated, createNewRole)
@@ -218,7 +242,7 @@ func (s *Server) CreateNewRole(ctx *gin.Context, params api.CreateNewRoleParams)
 func (s *Server) GetRoleById(ctx *gin.Context, id api.Id, params api.GetRoleByIdParams) {
 	roleById, err := s.roleService.GetRoleById(ctx, id)
 	if err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, roleById)
@@ -228,7 +252,7 @@ func (s *Server) GetRoleById(ctx *gin.Context, id api.Id, params api.GetRoleById
 func (s *Server) ListAllRoles(ctx *gin.Context, params api.ListAllRolesParams) {
 	listRoles, err := s.roleService.ListRoles(ctx)
 	if err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, listRoles)
@@ -243,12 +267,12 @@ func (s *Server) UpdateRoleById(ctx *gin.Context, id api.Id, params api.UpdateRo
 	}
 	var req api.UpdateRole
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.Error(httperror.New(httperror.InvalidRequestBody))
+		_ = ctx.Error(httperror.New(httperror.InvalidRequestBody))
 		return
 	}
 	updatedRole, err := s.roleService.UpdateRoleById(ctx, id, email, params, req)
 	if err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, updatedRole)
@@ -258,7 +282,7 @@ func (s *Server) UpdateRoleById(ctx *gin.Context, id api.Id, params api.UpdateRo
 func (s *Server) DeleteRoleById(ctx *gin.Context, id api.Id, params api.DeleteRoleByIdParams) {
 	err := s.roleService.DeleteRoleById(ctx, id)
 	if err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.Status(http.StatusOK)
@@ -273,12 +297,12 @@ func (s *Server) CreateNewPermission(ctx *gin.Context, params api.CreateNewPermi
 	}
 	var createPermission api.CreatePermission
 	if err := ctx.ShouldBindJSON(&createPermission); err != nil {
-		ctx.Error(httperror.New(httperror.InvalidRequestBody))
+		_ = ctx.Error(httperror.New(httperror.InvalidRequestBody))
 		return
 	}
 	createNewPermission, err := s.permissionService.CreateNewPermission(ctx, params, createPermission)
 	if err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.JSON(http.StatusCreated, createNewPermission)
@@ -288,7 +312,7 @@ func (s *Server) CreateNewPermission(ctx *gin.Context, params api.CreateNewPermi
 func (s *Server) GetPermissionById(ctx *gin.Context, id api.Id, params api.GetPermissionByIdParams) {
 	permissionById, err := s.permissionService.GetPermissionById(ctx, id)
 	if err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, permissionById)
@@ -298,7 +322,7 @@ func (s *Server) GetPermissionById(ctx *gin.Context, id api.Id, params api.GetPe
 func (s *Server) ListAllPermissions(ctx *gin.Context, params api.ListAllPermissionsParams) {
 	permissionList, err := s.permissionService.ListPermissions(ctx)
 	if err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, permissionList)
@@ -313,12 +337,12 @@ func (s *Server) UpdatePermissionById(ctx *gin.Context, id api.Id, params api.Up
 	}
 	var req api.UpdatePermission
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.Error(httperror.New(httperror.InvalidRequestBody))
+		_ = ctx.Error(httperror.New(httperror.InvalidRequestBody))
 		return
 	}
 	updatedPermission, err := s.permissionService.UpdatePermissionById(ctx, id, params, req)
 	if err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, updatedPermission)
@@ -328,7 +352,7 @@ func (s *Server) UpdatePermissionById(ctx *gin.Context, id api.Id, params api.Up
 func (s *Server) DeletePermissionById(ctx *gin.Context, id api.Id, params api.DeletePermissionByIdParams) {
 	err := s.permissionService.DeletePermissionById(ctx, id)
 	if err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.Status(http.StatusOK)
@@ -343,11 +367,11 @@ func (s *Server) AssignPermissionToRole(ctx *gin.Context, id api.Id, params api.
 	}
 	var req api.AssignPermission
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.Error(httperror.New(httperror.InvalidRequestBody))
+		_ = ctx.Error(httperror.New(httperror.InvalidRequestBody))
 		return
 	}
 	if err := s.roleService.AssignPermissionToRole(ctx, id, params, req, email.(string)); err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.Status(http.StatusOK)
@@ -356,7 +380,7 @@ func (s *Server) AssignPermissionToRole(ctx *gin.Context, id api.Id, params api.
 
 func (s *Server) UnassignPermissionFromRole(ctx *gin.Context, roleId api.RoleId, permissionId api.PermissionId) {
 	if err := s.roleService.UnassignPermissionFromRole(ctx, roleId, permissionId); err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.Status(http.StatusOK)
@@ -365,7 +389,7 @@ func (s *Server) UnassignPermissionFromRole(ctx *gin.Context, roleId api.RoleId,
 
 func (s *Server) RolesAndPermissions(ctx *gin.Context, params api.RolesAndPermissionsParams) {
 	if rolesAndPermissionLists, err := s.roleService.ListRolesAndItsPermissions(ctx); err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	} else {
 		ctx.JSON(http.StatusOK, rolesAndPermissionLists)
@@ -375,7 +399,7 @@ func (s *Server) RolesAndPermissions(ctx *gin.Context, params api.RolesAndPermis
 
 func (s *Server) GetRolesOfUser(ctx *gin.Context, id api.Id, params api.GetRolesOfUserParams) {
 	if userRolesAndPermissions, err := s.userService.GetUserRolesAndPermissions(ctx, id, params); err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	} else {
 		ctx.JSON(http.StatusOK, userRolesAndPermissions)
@@ -391,11 +415,11 @@ func (s *Server) AssignRolesToUser(ctx *gin.Context, id api.Id, params api.Assig
 	}
 	var req api.AssignRoleToUser
 	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.Error(httperror.New(httperror.InvalidRequestBody))
+		_ = ctx.Error(httperror.New(httperror.InvalidRequestBody))
 		return
 	}
 	if err := s.userService.AssignRolesToUser(ctx, id, params, req, email.(string)); err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.Status(http.StatusOK)
@@ -404,7 +428,7 @@ func (s *Server) AssignRolesToUser(ctx *gin.Context, id api.Id, params api.Assig
 
 func (s *Server) RemoveRolesForUser(ctx *gin.Context, userId api.Id, roleId api.RoleId, params api.RemoveRolesForUserParams) {
 	if err := s.userService.UnassignRolesOfUser(ctx, userId, roleId, params); err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.Status(http.StatusOK)
@@ -414,7 +438,7 @@ func (s *Server) RemoveRolesForUser(ctx *gin.Context, userId api.Id, roleId api.
 func (s *Server) GetListOfUsers(ctx *gin.Context, params api.GetListOfUsersParams) {
 	listOfUsers, err := s.adminService.GetListOfUsers(ctx, params)
 	if err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, listOfUsers)
@@ -423,7 +447,7 @@ func (s *Server) GetListOfUsers(ctx *gin.Context, params api.GetListOfUsersParam
 
 func (s *Server) LockUser(ctx *gin.Context, id api.Id, params api.LockUserParams) {
 	if err := s.adminService.LockUserById(ctx, id, params); err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.Status(http.StatusOK)
@@ -432,7 +456,7 @@ func (s *Server) LockUser(ctx *gin.Context, id api.Id, params api.LockUserParams
 
 func (s *Server) UnlockUser(ctx *gin.Context, id api.Id, params api.UnlockUserParams) {
 	if err := s.adminService.UnlockUserById(ctx, id, params); err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.Status(http.StatusOK)
@@ -441,7 +465,7 @@ func (s *Server) UnlockUser(ctx *gin.Context, id api.Id, params api.UnlockUserPa
 
 func (s *Server) DisableUser(ctx *gin.Context, id api.Id, params api.DisableUserParams) {
 	if err := s.adminService.DisableUserById(ctx, id, params); err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.Status(http.StatusOK)
@@ -450,7 +474,7 @@ func (s *Server) DisableUser(ctx *gin.Context, id api.Id, params api.DisableUser
 
 func (s *Server) EnableUser(ctx *gin.Context, id api.Id, params api.EnableUserParams) {
 	if err := s.adminService.EnableUserById(ctx, id, params); err != nil {
-		ctx.Error(err)
+		_ = ctx.Error(err)
 		return
 	}
 	ctx.Status(http.StatusOK)

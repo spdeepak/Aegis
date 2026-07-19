@@ -2,11 +2,13 @@ package users
 
 import (
 	"errors"
+	"fmt"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/pquerna/otp/totp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -190,7 +192,7 @@ func TestService_Login_OK(t *testing.T) {
 
 	email := "first.last@example.com"
 	userLogin := api.UserLogin{
-		Email:    email,
+		Email:    openapi_types.Email(email),
 		Password: "Som€_$trong_P@$$word",
 	}
 
@@ -226,7 +228,7 @@ func TestService_Login_NOK_WrongPassword(t *testing.T) {
 	ctx, _ := gin.CreateTestContext(w)
 	email := "first.last@example.com"
 	userLogin := api.UserLogin{
-		Email:    email,
+		Email:    openapi_types.Email(email),
 		Password: "Som€_P@$$word",
 	}
 
@@ -257,7 +259,7 @@ func TestService_Login_NOK_DB(t *testing.T) {
 	ctx, _ := gin.CreateTestContext(w)
 	email := "first.last@example.com"
 	userLogin := api.UserLogin{
-		Email:    email,
+		Email:    openapi_types.Email(email),
 		Password: "Som€_$trong_P@$$word",
 	}
 
@@ -282,7 +284,7 @@ func TestService_Login_NOK(t *testing.T) {
 	ctx, _ := gin.CreateTestContext(w)
 	email := "first.last@example.com"
 	userLogin := api.UserLogin{
-		Email:    email,
+		Email:    openapi_types.Email(email),
 		Password: "Som€_$trong_P@$$word",
 	}
 
@@ -460,4 +462,240 @@ func TestService_Login2FA_NOK_Old2FACode(t *testing.T) {
 	assert.True(t, errors.As(err, &he))
 	assert.Equal(t, httperror.InvalidTwoFA, he.ErrorCode)
 	assert.Empty(t, login2FA)
+}
+
+func TestService_ChangePassword_No2FA_OK(t *testing.T) {
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Header("x-login-source", "test")
+	ctx.Header("user-agent", "test")
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
+
+	userId := int64(9999999)
+
+	oldPassword, err := hashPassword("notqweRTY12#")
+	assert.NoError(t, err)
+
+	userQuery := NewMockQuerier(t)
+	userQuery.EXPECT().GetEntireUserByEmail(ctx, "first.last@example.com").Return(GetEntireUserByEmailRow{UserID: userId, Email: "first.last@example.com", FirstName: "First", LastName: "Last", Password: oldPassword}, nil)
+	userQuery.EXPECT().ChangePassword(ctx, mock.MatchedBy(func(cp ChangePasswordParams) bool {
+		return cp.UserID == userId && cp.UserEmail == "first.last@example.com"
+	})).Return(nil)
+
+	userService := NewService(userQuery, nil, nil)
+
+	password, err := userService.ChangePassword(ctx, "first.last@example.com", 9999999, api.ChangePassword{NewPassword: "qweRTY12#", OldPassword: "notqweRTY12#"})
+	assert.NoError(t, err)
+	assert.Empty(t, password)
+}
+
+func TestService_ChangePassword_InvalidOldPassword(t *testing.T) {
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Header("x-login-source", "test")
+	ctx.Header("user-agent", "test")
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
+
+	userId := int64(9999999)
+
+	oldPassword, err := hashPassword("notqweRTY12#")
+	assert.NoError(t, err)
+
+	userQuery := NewMockQuerier(t)
+	userQuery.EXPECT().GetEntireUserByEmail(ctx, "first.last@example.com").Return(GetEntireUserByEmailRow{UserID: userId, Email: "first.last@example.com", FirstName: "First", LastName: "Last", Password: oldPassword}, nil)
+
+	userService := NewService(userQuery, nil, nil)
+
+	password, err := userService.ChangePassword(ctx, "first.last@example.com", 9999999, api.ChangePassword{NewPassword: "qweRTY12#", OldPassword: "nqweRTY12#"})
+	assert.Error(t, err)
+	var httpErr httperror.HttpError
+	assert.True(t, errors.As(err, &httpErr))
+	assert.Equal(t, httperror.InvalidCredentials, httpErr.ErrorCode)
+	assert.Empty(t, password)
+}
+
+func TestService_ChangePassword_GetByEmailError(t *testing.T) {
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Header("x-login-source", "test")
+	ctx.Header("user-agent", "test")
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
+
+	userQuery := NewMockQuerier(t)
+	userQuery.EXPECT().GetEntireUserByEmail(ctx, "first.last@example.com").Return(GetEntireUserByEmailRow{}, fmt.Errorf("error"))
+
+	userService := NewService(userQuery, nil, nil)
+
+	password, err := userService.ChangePassword(ctx, "first.last@example.com", 9999999, api.ChangePassword{NewPassword: "qweRTY12#", OldPassword: "notqweRTY12#"})
+	assert.Error(t, err)
+	assert.Nil(t, password)
+}
+
+func TestService_ChangePassword_2FA_OK(t *testing.T) {
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Header("x-login-source", "test")
+	ctx.Header("user-agent", "test")
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
+
+	userId := int64(9999999)
+
+	//2FA
+	twoFAQuery := twoFA.NewMockQuerier(t)
+	twoFAQuery.EXPECT().Get2FADetails(ctx, userId).Return(twoFA.Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
+	twoFAService := twoFA.NewService("go-jwt-server", twoFAQuery)
+
+	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now())
+	assert.NoError(t, err)
+
+	oldPassword, err := hashPassword("notqweRTY12#")
+	assert.NoError(t, err)
+
+	userQuery := NewMockQuerier(t)
+	userQuery.EXPECT().GetEntireUserByEmail(ctx, "first.last@example.com").Return(GetEntireUserByEmailRow{UserID: userId, Email: "first.last@example.com", FirstName: "First", LastName: "Last", Password: oldPassword, TwoFaEnabled: true}, nil)
+	userQuery.EXPECT().ChangePassword(ctx, mock.MatchedBy(func(cp ChangePasswordParams) bool {
+		return cp.UserID == userId && cp.UserEmail == "first.last@example.com"
+	})).Return(nil)
+
+	userService := NewService(userQuery, twoFAService, nil)
+	password, err := userService.ChangePassword(ctx, "first.last@example.com", 9999999, api.ChangePassword{NewPassword: "qweRTY12#", OldPassword: "notqweRTY12#", TwoFACode: &passcode})
+	assert.NoError(t, err)
+	assert.Empty(t, password)
+}
+
+func TestService_ChangePassword_ChangePasswordError(t *testing.T) {
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Header("x-login-source", "test")
+	ctx.Header("user-agent", "test")
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
+
+	userId := int64(9999999)
+
+	//2FA
+	twoFAQuery := twoFA.NewMockQuerier(t)
+	twoFAQuery.EXPECT().Get2FADetails(ctx, userId).Return(twoFA.Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
+	twoFAService := twoFA.NewService("go-jwt-server", twoFAQuery)
+
+	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now())
+	assert.NoError(t, err)
+
+	oldPassword, err := hashPassword("notqweRTY12#")
+	assert.NoError(t, err)
+
+	userQuery := NewMockQuerier(t)
+	userQuery.EXPECT().GetEntireUserByEmail(ctx, "first.last@example.com").Return(GetEntireUserByEmailRow{UserID: userId, Email: "first.last@example.com", FirstName: "First", LastName: "Last", Password: oldPassword, TwoFaEnabled: true}, nil)
+	userQuery.EXPECT().ChangePassword(ctx, mock.MatchedBy(func(cp ChangePasswordParams) bool {
+		return cp.UserID == userId && cp.UserEmail == "first.last@example.com"
+	})).Return(fmt.Errorf("error"))
+
+	userService := NewService(userQuery, twoFAService, nil)
+	password, err := userService.ChangePassword(ctx, "first.last@example.com", 9999999, api.ChangePassword{NewPassword: "qweRTY12#", OldPassword: "notqweRTY12#", TwoFACode: &passcode})
+	assert.Error(t, err)
+	assert.Empty(t, password)
+}
+
+func TestService_ChangePassword_2FACodeOld_NOK(t *testing.T) {
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Header("x-login-source", "test")
+	ctx.Header("user-agent", "test")
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
+
+	userId := int64(9999999)
+
+	//2FA
+	twoFAQuery := twoFA.NewMockQuerier(t)
+	twoFAQuery.EXPECT().Get2FADetails(ctx, userId).Return(twoFA.Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
+	twoFAService := twoFA.NewService("go-jwt-server", twoFAQuery)
+
+	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-10*time.Minute))
+	assert.NoError(t, err)
+
+	oldPassword, err := hashPassword("notqweRTY12#")
+	assert.NoError(t, err)
+
+	userQuery := NewMockQuerier(t)
+	userQuery.EXPECT().GetEntireUserByEmail(ctx, "first.last@example.com").Return(GetEntireUserByEmailRow{UserID: userId, Email: "first.last@example.com", FirstName: "First", LastName: "Last", Password: oldPassword, TwoFaEnabled: true}, nil)
+
+	userService := NewService(userQuery, twoFAService, nil)
+	password, err := userService.ChangePassword(ctx, "first.last@example.com", 9999999, api.ChangePassword{NewPassword: "qweRTY12#", OldPassword: "notqweRTY12#", TwoFACode: &passcode})
+	assert.Error(t, err)
+	var httpErr httperror.HttpError
+	assert.True(t, errors.As(err, &httpErr))
+	assert.Equal(t, httperror.InvalidTwoFA, httpErr.ErrorCode)
+	assert.Empty(t, password)
+}
+
+func TestService_ChangePassword_2FACodeError(t *testing.T) {
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Header("x-login-source", "test")
+	ctx.Header("user-agent", "test")
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
+
+	userId := int64(9999999)
+
+	//2FA
+	twoFAQuery := twoFA.NewMockQuerier(t)
+	twoFAQuery.EXPECT().Get2FADetails(ctx, userId).Return(twoFA.Users2fa{}, fmt.Errorf("error"))
+	twoFAService := twoFA.NewService("go-jwt-server", twoFAQuery)
+
+	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now())
+	assert.NoError(t, err)
+
+	oldPassword, err := hashPassword("notqweRTY12#")
+	assert.NoError(t, err)
+
+	userQuery := NewMockQuerier(t)
+	userQuery.EXPECT().GetEntireUserByEmail(ctx, "first.last@example.com").Return(GetEntireUserByEmailRow{UserID: userId, Email: "first.last@example.com", FirstName: "First", LastName: "Last", Password: oldPassword, TwoFaEnabled: true}, nil)
+
+	userService := NewService(userQuery, twoFAService, nil)
+	password, err := userService.ChangePassword(ctx, "first.last@example.com", 9999999, api.ChangePassword{NewPassword: "qweRTY12#", OldPassword: "notqweRTY12#", TwoFACode: &passcode})
+	assert.Error(t, err)
+	assert.Empty(t, password)
+}
+
+func TestService_ChangePassword_2FACodeNotPresent(t *testing.T) {
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Header("x-login-source", "test")
+	ctx.Header("user-agent", "test")
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
+
+	userId := int64(9999999)
+
+	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now())
+	assert.NoError(t, err)
+	assert.NotEmpty(t, passcode)
+
+	oldPassword, err := hashPassword("notqweRTY12#")
+	assert.NoError(t, err)
+
+	userQuery := NewMockQuerier(t)
+	userQuery.EXPECT().GetEntireUserByEmail(ctx, "first.last@example.com").Return(GetEntireUserByEmailRow{UserID: userId, Email: "first.last@example.com", FirstName: "First", LastName: "Last", Password: oldPassword, TwoFaEnabled: true}, nil)
+
+	userService := NewService(userQuery, nil, nil)
+	password, err := userService.ChangePassword(ctx, "first.last@example.com", 9999999, api.ChangePassword{NewPassword: "qweRTY12#", OldPassword: "notqweRTY12#"})
+	assert.Error(t, err)
+	var httpErr httperror.HttpError
+	assert.True(t, errors.As(err, &httpErr))
+	assert.Equal(t, httperror.TwoFARequired, httpErr.ErrorCode)
+	assert.Empty(t, password)
 }

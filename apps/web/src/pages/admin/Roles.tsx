@@ -13,9 +13,15 @@ export function RolesPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [newRole, setNewRole] = useState({ name: '', description: '' })
   const [creating, setCreating] = useState(false)
+  const [search, setSearch] = useState('')
 
   const canCreate = hasRole('super_admin') || hasPermission('roles:create')
   const canDelete = hasRole('super_admin') || hasPermission('roles:delete')
+
+  const filteredRoles = roleList.filter(r => {
+    const q = search.toLowerCase()
+    return r.name.toLowerCase().includes(q) || r.description.toLowerCase().includes(q)
+  })
 
   const fetchRoles = useCallback(async () => {
     setLoading(true)
@@ -52,9 +58,17 @@ export function RolesPage() {
 
   return (
     <div className="space-y-6">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <Input
+          placeholder="Search roles..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">Roles ({roleList.length})</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Roles ({filteredRoles.length})</h3>
           {canCreate && (
             <Button size="sm" onClick={() => setShowCreate(true)}>
               Create Role
@@ -63,7 +77,7 @@ export function RolesPage() {
         </div>
         {loading ? (
           <div className="p-6 text-center text-gray-500">Loading...</div>
-        ) : roleList.length === 0 ? (
+        ) : filteredRoles.length === 0 ? (
           <div className="p-6 text-center text-gray-500">No roles found</div>
         ) : (
           <div className="overflow-x-auto">
@@ -77,7 +91,7 @@ export function RolesPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {roleList.map(r => (
+                {filteredRoles.map(r => (
                   <tr key={r.id} className="hover:bg-gray-50">
                     <td className="px-6 py-3">
                       <Link to={`/admin/roles/${r.id}`} className="font-medium text-gray-900 hover:text-indigo-600">

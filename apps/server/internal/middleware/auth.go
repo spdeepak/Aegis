@@ -41,7 +41,7 @@ func JWTAuthMiddleware(secret []byte, skipPaths []string, issuer string) gin.Han
 	return func(c *gin.Context) {
 		path := c.Request.URL.Path
 
-		if slices.Contains(append([]string{"/ready", "/live", "/api/v1/auth/signup", "/api/v1/auth/login"}, skipPaths...), path) {
+		if slices.Contains(append([]string{"/ready", "/live", "/api/v1/auth/signup", "/api/v1/auth/login", "/api/v1/auth/refresh"}, skipPaths...), path) {
 			c.Next()
 			return
 		}

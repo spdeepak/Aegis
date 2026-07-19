@@ -2,6 +2,7 @@ package users
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -26,6 +27,7 @@ type (
 		Signup(ctx *gin.Context, user api.UserSignup) (api.SignUpWith2FAResponse, error)
 		Login(ctx *gin.Context, params api.LoginParams, login api.UserLogin) (any, error)
 		Login2FA(ctx *gin.Context, params api.Login2FAParams, userId int64, passcode string) (api.LoginSuccessWithJWT, error)
+		ChangePassword(ctx *gin.Context, email string, userId int64, changePassword api.ChangePassword) (api.ChangePasswordResponseObject, error)
 		RefreshToken(ctx *gin.Context, params api.RefreshParams, refresh api.Refresh) (api.LoginSuccessWithJWT, error)
 		GetUserRolesAndPermissions(ctx *gin.Context, id api.Id, params api.GetRolesOfUserParams) (api.UserWithRoles, error)
 		AssignRolesToUser(ctx *gin.Context, userId api.Id, params api.AssignRolesToUserParams, assignRoleToUser api.AssignRoleToUser, email string) error
@@ -91,8 +93,47 @@ func (s *service) Signup(ctx *gin.Context, user api.UserSignup) (api.SignUpWith2
 	}, nil
 }
 
+func (s *service) ChangePassword(ctx *gin.Context, email string, userId int64, changePassword api.ChangePassword) (api.ChangePasswordResponseObject, error) {
+	userByEmail, err := s.query.GetEntireUserByEmail(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+	if !validPassword(changePassword.OldPassword, userByEmail.Password) {
+		return api.ChangePassword401Response{}, httperror.New(httperror.InvalidCredentials)
+	}
+	if userByEmail.TwoFaEnabled {
+		if changePassword.TwoFACode == nil {
+			slog.ErrorContext(ctx, "Failed to encrypt password", "error", err)
+			return api.ChangePassword403Response{}, httperror.New(httperror.TwoFARequired)
+		}
+		if valid2FA, err := s.twoFAService.Verify2FALogin(ctx, api.Login2FAParams{}, userByEmail.UserID, *changePassword.TwoFACode); err != nil {
+			slog.ErrorContext(ctx, "Failed to verify 2fa code", "error", err)
+			return nil, err
+		} else if !valid2FA {
+			slog.ErrorContext(ctx, "Invalid 2fa code")
+			return nil, httperror.New(httperror.InvalidTwoFA)
+		}
+	}
+	hashedNewPassword, err := hashPassword(changePassword.NewPassword)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to encrypt password", "error", err)
+		return api.ChangePassword400Response{}, fmt.Errorf("hashing password failed")
+	}
+	changePasswordReq := ChangePasswordParams{
+		Password:  hashedNewPassword,
+		UserID:    userId,
+		UserEmail: email,
+	}
+	err = s.query.ChangePassword(ctx, changePasswordReq)
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to change password", "error", err)
+		return nil, httperror.NewWithMetadata(httperror.UserOperationFailed, "Failed to change password")
+	}
+	return api.ChangePassword200Response{}, nil
+}
+
 func (s *service) Login(ctx *gin.Context, params api.LoginParams, login api.UserLogin) (any, error) {
-	user, err := s.query.GetEntireUserByEmail(ctx, login.Email)
+	user, err := s.query.GetEntireUserByEmail(ctx, string(login.Email))
 	if err != nil {
 		if err.Error() == "no rows in result set" {
 			return api.LoginSuccessWithJWT{}, httperror.New(httperror.InvalidCredentials)
