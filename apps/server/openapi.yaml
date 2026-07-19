@@ -84,6 +84,8 @@ paths:
           description: BAD_REQUEST
         '401':
           description: UNAUTHORISED
+        '403':
+          description: Forbidden
   /api/v1/auth/refresh:
     post:
       summary: Token refresh
@@ -91,8 +93,6 @@ paths:
       operationId: refresh
       tags:
         - Auth
-      security:
-        - BearerAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/LoginSource'
         - $ref: '#/components/parameters/UserAgent'

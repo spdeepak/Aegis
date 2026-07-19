@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { users, type UserDetails } from '../../lib/api'
+import { useAuth } from '../../contexts/AuthContext'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 
 export function UsersPage() {
+  const { user: currentUser } = useAuth()
   const [userList, setUserList] = useState<UserDetails[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState({ firstName: '', lastName: '', email: '' })
@@ -115,9 +117,25 @@ export function UsersPage() {
                     <td className="px-6 py-3 text-gray-600">{u.email}</td>
                     <td className="px-6 py-3">
                       <div className="flex flex-wrap gap-1">
-                        {u.roles.map(r => (
-                          <Badge key={r} variant="info">{r}</Badge>
-                        ))}
+                        {u.roles.map((r, i) => {
+                          let roleName = r
+                          let roleDesc = ''
+                          try {
+                            const parsed = JSON.parse(r)
+                            roleName = parsed.name || r
+                            roleDesc = parsed.description || ''
+                          } catch { /* not JSON, use as-is */ }
+                          return (
+                            <div key={i} className="relative group">
+                              <Badge variant="info">{roleName}</Badge>
+                              {roleDesc && (
+                                <div className="absolute z-10 bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg">
+                                  <p className="text-gray-300">{roleDesc}</p>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     </td>
                     <td className="px-6 py-3">
@@ -131,10 +149,10 @@ export function UsersPage() {
                     </td>
                     <td className="px-6 py-3">
                       <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => handleToggleLock(u)}>
+                        <Button variant="warning" size="sm" onClick={() => handleToggleLock(u)} disabled={u.id === currentUser?.id}>
                           {u.locked ? 'Unlock' : 'Lock'}
                         </Button>
-                        <Button variant="ghost" size="sm" onClick={() => u.disabled ? handleEnable(u) : handleDisable(u)}>
+                        <Button variant="danger" size="sm" onClick={() => u.disabled ? handleEnable(u) : handleDisable(u)} disabled={u.id === currentUser?.id}>
                           {u.disabled ? 'Enable' : 'Disable'}
                         </Button>
                       </div>

@@ -3,6 +3,7 @@ import { auth, type Session } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import { TwoFAPopup, isTwoFARequired } from '../components/ui/TwoFAPopup'
 
 export function Profile() {
   const { user } = useAuth()
@@ -10,32 +11,77 @@ export function Profile() {
   const [loadingSessions, setLoadingSessions] = useState(true)
   const [oldPassword, setOldPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordMsg, setPasswordMsg] = useState('')
   const [passwordErr, setPasswordErr] = useState('')
   const [changingPw, setChangingPw] = useState(false)
+
+  const [show2FA, setShow2FA] = useState(false)
+  const [twoFAError, setTwoFAError] = useState('')
+  const [twoFALoading, setTwoFALoading] = useState(false)
+  const [pendingChange, setPendingChange] = useState<{ oldPassword: string; newPassword: string } | null>(null)
 
   useEffect(() => {
     auth.getSessions().then(setSessions).catch(() => {}).finally(() => setLoadingSessions(false))
   }, [])
 
-  async function handleChangePassword(e: FormEvent) {
-    e.preventDefault()
+  async function doChangePassword(oldPw: string, newPw: string, twoFACode?: string) {
+    setChangingPw(true)
     setPasswordMsg('')
     setPasswordErr('')
-    setChangingPw(true)
     try {
-      await auth.changePassword(oldPassword, newPassword)
+      await auth.changePassword(oldPw, newPw, twoFACode)
       setPasswordMsg('Password changed successfully')
       setOldPassword('')
       setNewPassword('')
+      setConfirmPassword('')
     } catch (err: unknown) {
-      const msg = (err && typeof err === 'object' && 'description' in err)
-        ? String((err as { description: string }).description)
-        : 'Failed to change password'
-      setPasswordErr(msg)
+      if (!twoFACode && isTwoFARequired(err)) {
+        setPendingChange({ oldPassword: oldPw, newPassword: newPw })
+        setShow2FA(true)
+        setTwoFAError('')
+      } else {
+        const msg = (err && typeof err === 'object' && 'description' in err)
+          ? String((err as { description: string }).description)
+          : 'Failed to change password'
+        setPasswordErr(msg)
+      }
     } finally {
       setChangingPw(false)
     }
+  }
+
+  async function handleChangePassword(e: FormEvent) {
+    e.preventDefault()
+    if (newPassword !== confirmPassword) {
+      setPasswordErr('New passwords do not match')
+      return
+    }
+    await doChangePassword(oldPassword, newPassword)
+  }
+
+  async function handle2FASubmit(code: string) {
+    if (!pendingChange) return
+    setTwoFALoading(true)
+    setTwoFAError('')
+    try {
+      await doChangePassword(pendingChange.oldPassword, pendingChange.newPassword, code)
+      setShow2FA(false)
+      setPendingChange(null)
+    } catch (err: unknown) {
+      const msg = (err && typeof err === 'object' && 'description' in err)
+        ? String((err as { description: string }).description)
+        : 'Invalid code'
+      setTwoFAError(msg)
+    } finally {
+      setTwoFALoading(false)
+    }
+  }
+
+  function handle2FAClose() {
+    setShow2FA(false)
+    setPendingChange(null)
+    setTwoFAError('')
   }
 
   async function handleRevokeAll() {
@@ -89,6 +135,13 @@ export function Profile() {
             onChange={(e) => setNewPassword(e.target.value)}
             required
           />
+          <Input
+            label="Re-enter New Password"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
           <Button type="submit" disabled={changingPw}>
             {changingPw ? 'Changing...' : 'Change Password'}
           </Button>
@@ -126,6 +179,14 @@ export function Profile() {
           </div>
         )}
       </div>
+
+      <TwoFAPopup
+        open={show2FA}
+        onClose={handle2FAClose}
+        onSubmit={handle2FASubmit}
+        error={twoFAError}
+        loading={twoFALoading}
+      />
     </div>
   )
 }

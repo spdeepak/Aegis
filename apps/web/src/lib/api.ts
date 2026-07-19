@@ -1,3 +1,5 @@
+import { isTokenExpired } from './jwt'
+
 const ACCESS_TOKEN_KEY = 'aegis_access_token'
 const REFRESH_TOKEN_KEY = 'aegis_refresh_token'
 
@@ -24,7 +26,11 @@ let refreshPromise: Promise<string> | null = null
 
 async function refreshAccessToken(): Promise<string> {
   const refreshToken = getRefreshToken()
-  if (!refreshToken) throw new Error('No refresh token')
+  if (!refreshToken) {
+    clearTokens()
+    window.location.href = '/login'
+    throw new Error('No refresh token')
+  }
 
   if (isRefreshing && refreshPromise) {
     return refreshPromise
@@ -44,7 +50,10 @@ async function refreshAccessToken(): Promise<string> {
       })
 
       if (!res.ok) {
-        clearTokens()
+        if (res.status === 401 || res.status === 403) {
+          clearTokens()
+          window.location.href = '/login'
+        }
         throw new Error('Refresh failed')
       }
 
@@ -58,6 +67,13 @@ async function refreshAccessToken(): Promise<string> {
   })()
 
   return refreshPromise
+}
+
+async function ensureValidToken(): Promise<string | null> {
+  const token = getAccessToken()
+  if (!token) return null
+  if (!isTokenExpired(token)) return token
+  return refreshAccessToken()
 }
 
 interface RequestOptions extends Omit<RequestInit, 'method' | 'body'> {
@@ -87,7 +103,7 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
     ...(extraHeaders as Record<string, string>),
   }
 
-  const token = getAccessToken()
+  const token = await ensureValidToken()
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
   }
@@ -96,29 +112,12 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
     headers['Content-Type'] = 'application/json'
   }
 
-  let res = await fetch(fullUrl, {
+  const res = await fetch(fullUrl, {
     method,
     headers,
     body: body ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined,
     ...rest,
   })
-
-  if (res.status === 401 && token) {
-    try {
-      const newToken = await refreshAccessToken()
-      headers['Authorization'] = `Bearer ${newToken}`
-      res = await fetch(fullUrl, {
-        method,
-        headers,
-        body: body ? (body instanceof FormData ? body : JSON.stringify(body)) : undefined,
-        ...rest,
-      })
-    } catch {
-      clearTokens()
-      window.location.href = '/login'
-      throw new Error('Session expired')
-    }
-  }
 
   if (!res.ok) {
     const errorBody = await res.json().catch(() => ({}))
@@ -182,10 +181,10 @@ export const auth = {
       body: data,
     }),
 
-  changePassword: (oldPassword: string, newPassword: string) =>
+  changePassword: (oldPassword: string, newPassword: string, twoFACode?: string) =>
     request<void>('/api/v1/auth/password', {
       method: 'POST',
-      body: { oldPassword, newPassword },
+      body: { oldPassword, newPassword, twoFACode },
     }),
 
   refresh: (refreshToken: string) =>
@@ -354,4 +353,4 @@ export const permissions = {
     request<void>(`/api/v1/access-control/permissions/${id}`, { method: 'DELETE' }),
 }
 
-export { setTokens, clearTokens, getAccessToken, getRefreshToken }
+export { setTokens, clearTokens, getAccessToken, getRefreshToken, refreshAccessToken }

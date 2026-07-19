@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { getUserFromToken, isTokenExpired, type DecodedUser } from '../lib/jwt'
-import { getAccessToken, getRefreshToken, setTokens, clearTokens, auth } from '../lib/api'
+import { getAccessToken, getRefreshToken, setTokens, clearTokens, refreshAccessToken } from '../lib/api'
 
 interface AuthContextType {
   user: DecodedUser | null
@@ -19,7 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<DecodedUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  const loadUser = useCallback(() => {
+  const loadUser = useCallback(async () => {
     const token = getAccessToken()
     if (!token) {
       setUser(null)
@@ -30,17 +30,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isTokenExpired(token)) {
       const refreshToken = getRefreshToken()
       if (refreshToken && !isTokenExpired(refreshToken)) {
-        auth.refresh(refreshToken).then((data) => {
-          setTokens(data.accessToken, data.refreshToken)
-          setUser(getUserFromToken(data.accessToken))
-        }).catch(() => {
+        try {
+          const newToken = await refreshAccessToken()
+          setUser(getUserFromToken(newToken))
+        } catch {
           clearTokens()
           setUser(null)
-        }).finally(() => setIsLoading(false))
-        return
+        }
+      } else {
+        clearTokens()
+        setUser(null)
       }
-      clearTokens()
-      setUser(null)
     } else {
       setUser(getUserFromToken(token))
     }

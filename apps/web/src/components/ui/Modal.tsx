@@ -25,7 +25,7 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
     <dialog
       ref={dialogRef}
       onClose={onClose}
-      className="backdrop:bg-black/50 rounded-xl shadow-xl border border-gray-200 p-0 w-full max-w-lg"
+      className="backdrop:bg-black/50 rounded-xl shadow-xl border border-gray-200 p-0 w-full max-w-lg fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
     >
       <div className="p-6">
         <div className="flex items-center justify-between mb-4">

@@ -104,7 +104,7 @@ func (s *service) ChangePassword(ctx *gin.Context, email string, userId int64, c
 	if userByEmail.TwoFaEnabled {
 		if changePassword.TwoFACode == nil {
 			slog.ErrorContext(ctx, "Failed to encrypt password", "error", err)
-			return api.ChangePassword400Response{}, fmt.Errorf("2FA code is required")
+			return api.ChangePassword403Response{}, httperror.New(httperror.TwoFARequired)
 		}
 		if valid2FA, err := s.twoFAService.Verify2FALogin(ctx, api.Login2FAParams{}, userByEmail.UserID, *changePassword.TwoFACode); err != nil {
 			slog.ErrorContext(ctx, "Failed to verify 2fa code", "error", err)
