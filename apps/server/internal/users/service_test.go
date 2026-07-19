@@ -462,3 +462,64 @@ func TestService_Login2FA_NOK_Old2FACode(t *testing.T) {
 	assert.Equal(t, httperror.InvalidTwoFA, he.ErrorCode)
 	assert.Empty(t, login2FA)
 }
+
+func TestService_ChangePassword(t *testing.T) {
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Header("x-login-source", "test")
+	ctx.Header("user-agent", "test")
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
+
+	userId := int64(9999999)
+
+	oldPassword, err := hashPassword("notqweRTY12#")
+	assert.NoError(t, err)
+
+	userQuery := NewMockQuerier(t)
+	userQuery.EXPECT().GetEntireUserByEmail(ctx, "first.last@example.com").Return(GetEntireUserByEmailRow{UserID: userId, Email: "first.last@example.com", FirstName: "First", LastName: "Last", Password: oldPassword}, nil)
+	userQuery.EXPECT().ChangePassword(ctx, mock.MatchedBy(func(cp ChangePasswordParams) bool {
+		return cp.UserID == userId && cp.UserEmail == "first.last@example.com"
+	})).Return(nil)
+
+	userService := NewService(userQuery, nil, nil)
+
+	password, err := userService.ChangePassword(ctx, "first.last@example.com", 9999999, api.ChangePassword{NewPassword: "qweRTY12#", OldPassword: "notqweRTY12#"})
+	assert.NoError(t, err)
+	assert.Empty(t, password)
+}
+
+func TestService_ChangePassword_2fa(t *testing.T) {
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Header("x-login-source", "test")
+	ctx.Header("user-agent", "test")
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
+
+	userId := int64(9999999)
+
+	//2FA
+	twoFAQuery := twoFA.NewMockQuerier(t)
+	twoFAQuery.EXPECT().Get2FADetails(ctx, userId).Return(twoFA.Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
+	twoFAService := twoFA.NewService("go-jwt-server", twoFAQuery)
+
+	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now())
+	assert.NoError(t, err)
+
+	oldPassword, err := hashPassword("notqweRTY12#")
+	assert.NoError(t, err)
+
+	userQuery := NewMockQuerier(t)
+	userQuery.EXPECT().GetEntireUserByEmail(ctx, "first.last@example.com").Return(GetEntireUserByEmailRow{UserID: userId, Email: "first.last@example.com", FirstName: "First", LastName: "Last", Password: oldPassword, TwoFaEnabled: true}, nil)
+	userQuery.EXPECT().ChangePassword(ctx, mock.MatchedBy(func(cp ChangePasswordParams) bool {
+		return cp.UserID == userId && cp.UserEmail == "first.last@example.com"
+	})).Return(nil)
+
+	userService := NewService(userQuery, twoFAService, nil)
+	password, err := userService.ChangePassword(ctx, "first.last@example.com", 9999999, api.ChangePassword{NewPassword: "qweRTY12#", OldPassword: "notqweRTY12#", TwoFACode: &passcode})
+	assert.NoError(t, err)
+	assert.Empty(t, password)
+}

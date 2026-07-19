@@ -101,9 +101,18 @@ func (s *service) ChangePassword(ctx *gin.Context, email string, userId int64, c
 	if !validPassword(changePassword.OldPassword, userByEmail.Password) {
 		return api.ChangePassword401Response{}, httperror.New(httperror.InvalidCredentials)
 	}
-	if userByEmail.TwoFaEnabled && changePassword.TwoFACode == nil {
-		slog.ErrorContext(ctx, "Failed to encrypt password", "error", err)
-		return api.ChangePassword400Response{}, fmt.Errorf("2FA code is required")
+	if userByEmail.TwoFaEnabled {
+		if changePassword.TwoFACode == nil {
+			slog.ErrorContext(ctx, "Failed to encrypt password", "error", err)
+			return api.ChangePassword400Response{}, fmt.Errorf("2FA code is required")
+		}
+		if valid2FA, err := s.twoFAService.Verify2FALogin(ctx, api.Login2FAParams{}, userByEmail.UserID, *changePassword.TwoFACode); err != nil {
+			slog.ErrorContext(ctx, "Failed to verify 2fa code", "error", err)
+			return nil, err
+		} else if !valid2FA {
+			slog.ErrorContext(ctx, "Invalid 2fa code")
+			return nil, httperror.New(httperror.InvalidTwoFA)
+		}
 	}
 	hashedNewPassword, err := hashPassword(changePassword.NewPassword)
 	if err != nil {
