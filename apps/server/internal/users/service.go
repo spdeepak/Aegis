@@ -127,7 +127,7 @@ func (s *service) Login(ctx *gin.Context, params api.LoginParams, login api.User
 	user, err := s.query.GetEntireUserByEmail(ctx, string(login.Email))
 	if err != nil {
 		if err.Error() == "no rows in result set" {
-			return api.LoginSuccessWithJWT{}, httperror.New(httperror.UserOperationFailed)
+			return api.LoginSuccessWithJWT{}, httperror.New(httperror.InvalidCredentials)
 		}
 		return api.LoginSuccessWithJWT{}, httperror.NewWithMetadata(httperror.UndefinedErrorCode, err.Error())
 	}
