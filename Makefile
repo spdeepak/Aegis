@@ -16,6 +16,9 @@ build-backend:
 test-backend:
 	cd apps/server && go test -p 1 ./...
 
+test-backend-coverage:
+	cd apps/server && go test -p 1 -coverprofile=coverage.out ./... && { head -n1 coverage.out; grep -vE '\.gen\.go:' coverage.out | tail -n +2; } > coverage.filtered.out && go tool cover -func=coverage.filtered.out | tail -n1 && rm coverage.out coverage.filtered.out
+
 dev-backend:
 	cd apps/server && go run ./cmd/server
 
