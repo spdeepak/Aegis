@@ -1,4 +1,4 @@
-.PHONY: clean generate build build-backend build-frontend build-embedded dev-backend dev-frontend test-backend test-frontend
+.PHONY: clean clean-frontend generate generate-frontend build build-backend build-frontend build-embedded dev-backend dev-frontend test-backend test-frontend
 
 # Backend
 clean:
@@ -23,6 +23,12 @@ dev-backend:
 	cd apps/server && go run ./cmd/server
 
 # Frontend
+clean-frontend:
+	cd apps/web && find src -name "*.gen.ts" -type f -delete
+
+generate-frontend: clean-frontend
+	cd apps/web && npm run generate:api
+
 build-frontend:
 	npm run build --workspace=@aegis/web
 

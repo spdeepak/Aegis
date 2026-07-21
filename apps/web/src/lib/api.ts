@@ -1,4 +1,19 @@
 import { isTokenExpired } from './jwt'
+import type {
+  RoleResponse,
+  PermissionResponse,
+  UserDetails,
+  UserWithRoles,
+  GetAllSessionResponse,
+  LoginSuccessWithJWT,
+  LoginRequires2FA,
+  TwoFAResponse,
+  SignUpWith2FAResponse,
+  RolesAndPermissionResponse,
+  GetListOfUsersParams,
+} from './api.gen'
+
+// ─── Token Management ──────────────────────────────────────────
 
 const ACCESS_TOKEN_KEY = 'aegis_access_token'
 const REFRESH_TOKEN_KEY = 'aegis_refresh_token'
@@ -50,16 +65,16 @@ async function refreshAccessToken(): Promise<string> {
       })
 
       if (!res.ok) {
-        if (res.status === 401 || res.status === 403) {
-          clearTokens()
-          window.location.href = '/login'
-        }
-        throw new Error('Refresh failed')
+        throw { status: res.status }
       }
 
-      const data = await res.json()
+      const data: LoginSuccessWithJWT = await res.json()
       setTokens(data.accessToken, data.refreshToken)
-      return data.accessToken as string
+      return data.accessToken
+    } catch (err) {
+      clearTokens()
+      window.location.href = '/login'
+      throw err
     } finally {
       isRefreshing = false
       refreshPromise = null
@@ -75,6 +90,8 @@ async function ensureValidToken(): Promise<string | null> {
   if (!isTokenExpired(token)) return token
   return refreshAccessToken()
 }
+
+// ─── Request Helper ─────────────────────────────────────────────
 
 interface RequestOptions extends Omit<RequestInit, 'method' | 'body'> {
   method?: string
@@ -133,38 +150,15 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
 
 // ─── Auth ───────────────────────────────────────────────────────
 
-export interface LoginSuccess {
-  accessToken: string
-  refreshToken: string
-}
-
-export interface LoginRequires2FA {
-  type: '2fa'
-  temp_token: string
-}
-
-export interface SignUpWith2FAResponse {
-  qr_image: string
-  secret: string
-}
-
-export interface Session {
-  issuedAt: string
-  expiresAt: string
-  ipAddress: string
-  userAgent: string
-  createdBy: string
-}
-
 export const auth = {
   login: (email: string, password: string) =>
-    request<LoginSuccess | LoginRequires2FA>('/api/v1/auth/login', {
+    request<LoginSuccessWithJWT | LoginRequires2FA>('/api/v1/auth/login', {
       method: 'POST',
       body: { email, password },
     }),
 
   login2FA: (twoFACode: string) =>
-    request<LoginSuccess>('/api/v1/auth/2fa/login', {
+    request<LoginSuccessWithJWT>('/api/v1/auth/2fa/login', {
       method: 'POST',
       body: { twoFACode },
     }),
@@ -188,12 +182,12 @@ export const auth = {
     }),
 
   refresh: (refreshToken: string) =>
-    request<LoginSuccess>('/api/v1/auth/refresh', {
+    request<LoginSuccessWithJWT>('/api/v1/auth/refresh', {
       method: 'POST',
       body: { refreshToken },
     }),
 
-  getSessions: () => request<Session[]>('/api/v1/auth/sessions'),
+  getSessions: () => request<GetAllSessionResponse[]>('/api/v1/auth/sessions'),
 
   revokeSession: (refreshToken: string) =>
     request<void>('/api/v1/auth/sessions/current', {
@@ -203,7 +197,7 @@ export const auth = {
 
   revokeAllSessions: () => request<void>('/api/v1/auth/sessions', { method: 'DELETE' }),
 
-  setup2FA: () => request<{ qr_image: string; secret: string }>('/api/v1/auth/2fa/setup', { method: 'POST' }),
+  setup2FA: () => request<TwoFAResponse>('/api/v1/auth/2fa/setup', { method: 'POST' }),
 
   remove2FA: (twoFACode: string) =>
     request<void>('/api/v1/auth/2fa', {
@@ -214,31 +208,8 @@ export const auth = {
 
 // ─── Users (Admin) ──────────────────────────────────────────────
 
-export interface UserDetails {
-  id: number
-  email: string
-  firstName: string
-  lastName: string
-  locked: boolean
-  disabled: boolean
-  twoFAEnabled: boolean
-  createdAt: string
-  updatedAt: string
-  roles: string[]
-  permissions: string[]
-}
-
-export interface UserWithRoles {
-  id: number
-  email: string
-  firstName: string
-  lastName: string
-  roles: string[]
-  permissions: string[]
-}
-
 export const users = {
-  list: (params?: { firstName?: string; lastName?: string; email?: string; size?: number; page?: number }) =>
+  list: (params?: GetListOfUsersParams) =>
     request<UserDetails[]>('/api/v1/users', { params }),
 
   getRoles: (id: number) => request<UserWithRoles>(`/api/v1/users/${id}/roles`),
@@ -263,29 +234,6 @@ export const users = {
 
 // ─── Roles ──────────────────────────────────────────────────────
 
-export interface RoleResponse {
-  id: number
-  name: string
-  description: string
-  createdAt: string
-  createdBy: string
-  updatedAt: string
-  updatedBy: string
-}
-
-export interface RolesAndPermission {
-  roles: {
-    id: number
-    name: string
-    description: string
-    createdAt: string
-    createdBy: string
-    updatedAt: string
-    updatedBy: string
-    permissions: PermissionResponse[]
-  }
-}
-
 export const roles = {
   list: () => request<RoleResponse[]>('/api/v1/access-control/roles'),
 
@@ -306,7 +254,7 @@ export const roles = {
   delete: (id: number) =>
     request<void>(`/api/v1/access-control/roles/${id}`, { method: 'DELETE' }),
 
-  listAndPermissions: () => request<RolesAndPermission[]>('/api/v1/access-control/roles/permissions'),
+  listAndPermissions: () => request<RolesAndPermissionResponse[]>('/api/v1/access-control/roles/permissions'),
 
   assignPermissions: (roleId: number, permissionIds: number[]) =>
     request<void>(`/api/v1/access-control/roles/${roleId}/permissions`, {
@@ -321,16 +269,6 @@ export const roles = {
 }
 
 // ─── Permissions ────────────────────────────────────────────────
-
-export interface PermissionResponse {
-  id: number
-  name: string
-  description: string
-  createdAt: string
-  createdBy: string
-  updatedAt: string
-  updatedBy: string
-}
 
 export const permissions = {
   list: () => request<PermissionResponse[]>('/api/v1/access-control/permissions'),
@@ -353,4 +291,7 @@ export const permissions = {
     request<void>(`/api/v1/access-control/permissions/${id}`, { method: 'DELETE' }),
 }
 
+// ─── Re-exports ─────────────────────────────────────────────────
+
 export { setTokens, clearTokens, getAccessToken, getRefreshToken, refreshAccessToken }
+export type { RoleResponse, PermissionResponse, UserDetails, UserWithRoles, GetAllSessionResponse as Session }

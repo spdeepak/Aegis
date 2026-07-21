@@ -127,7 +127,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetAllSessionResponse'
+                type: array
+                items:
+                  $ref: '#/components/schemas/GetAllSessionResponse'
     delete:
       summary: Revoke all refresh tokens
       description: Endpoint to revoke all refresh tokens of a user
@@ -1230,6 +1232,7 @@ components:
         - firstName
         - lastName
         - locked
+        - disabled
         - twoFAEnabled
         - createdAt
         - updatedAt
@@ -1246,6 +1249,16 @@ components:
         firstName:
           type: string
         lastName:
+          type: string
+        locked:
+          type: boolean
+        disabled:
+          type: boolean
+        twoFAEnabled:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
           type: string
         roles:
           type: array

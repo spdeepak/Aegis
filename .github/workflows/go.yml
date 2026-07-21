@@ -40,6 +40,21 @@ jobs:
           grep -vE "(mock|generated|cmd/main.go)" coverage.raw > coverage.out
         working-directory: apps/server
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Generate frontend API client
+        run: make generate-frontend
+
+      - name: Frontend typecheck
+        run: make test-frontend
+
       - name: Upload to Codecov
         uses: codecov/codecov-action@v4
         with:
