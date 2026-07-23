@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	defaultBearerExpiry  = 15 * time.Minute
+	defaultBearerExpiry  = 15 * time.Second
 	defaultRefreshExpiry = 7 * 24 * time.Hour
 )
 

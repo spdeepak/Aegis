@@ -1,4 +1,4 @@
-.PHONY: clean generate build build-backend build-frontend build-embedded dev-backend dev-frontend test-backend test-frontend
+.PHONY: clean clean-frontend generate generate-frontend build build-backend build-frontend build-embedded dev-backend dev-frontend test-backend test-frontend
 
 # Backend
 clean:
@@ -16,10 +16,19 @@ build-backend:
 test-backend:
 	cd apps/server && go test -p 1 ./...
 
+test-backend-coverage:
+	cd apps/server && go test -p 1 -coverprofile=coverage.out ./... && { head -n1 coverage.out; grep -vE '\.gen\.go:' coverage.out | tail -n +2; } > coverage.filtered.out && go tool cover -func=coverage.filtered.out | tail -n1 && rm coverage.out coverage.filtered.out
+
 dev-backend:
 	cd apps/server && go run ./cmd/server
 
 # Frontend
+clean-frontend:
+	cd apps/web && find src -name "*.gen.ts" -type f -delete
+
+generate-frontend: clean-frontend
+	cd apps/web && npm run generate:api
+
 build-frontend:
 	npm run build --workspace=@aegis/web
 

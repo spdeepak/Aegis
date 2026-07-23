@@ -7,6 +7,8 @@ COPY apps/web/package.json ./apps/web/
 RUN npm ci --workspace=@aegis/web
 
 COPY apps/web/ ./apps/web/
+COPY apps/server/openapi.yaml ./apps/server/openapi.yaml
+RUN npm run generate:api --workspace=@aegis/web
 RUN npm run build --workspace=@aegis/web
 
 FROM nginx:alpine

@@ -480,18 +480,3 @@ func (s *Server) EnableUser(ctx *gin.Context, id api.Id, params api.EnableUserPa
 	ctx.Status(http.StatusOK)
 	return
 }
-
-func (s *Server) PostOauthIntrospect(ctx *gin.Context) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s *Server) PostOauthRevoke(ctx *gin.Context) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s *Server) PostOauthToken(ctx *gin.Context) {
-	//TODO implement me
-	panic("implement me")
-}

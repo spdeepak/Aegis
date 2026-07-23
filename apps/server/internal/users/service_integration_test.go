@@ -137,7 +137,7 @@ func TestIntegrationService_Signup_2FA(t *testing.T) {
 	})
 }
 
-func signup2faOk(t *testing.T) {
+func signup2faOk(t *testing.T) api.SignUpWith2FAResponse {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
 	user := api.UserSignup{
@@ -159,6 +159,7 @@ func signup2faOk(t *testing.T) {
 	assert.NotEmpty(t, res)
 	assert.NotEmpty(t, res.Secret)
 	assert.NotEmpty(t, res.QrImage)
+	return res
 }
 
 func signup2faNokUseralreadyexists(t *testing.T) {
@@ -631,4 +632,287 @@ func TestService_UnassignRolesToUser(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, userByEmail)
 	assert.Empty(t, userByEmail.RoleNames)
+}
+
+func TestIntegrationService_ChangePassword_No2FA(t *testing.T) {
+	truncateTables()
+	signupNo2faOk(t)
+	t.Run("Change Password without 2FA - Success", func(t *testing.T) {
+		changePasswordNo2faOk(t)
+	})
+	t.Run("Change Password without 2FA - Wrong Old Password", func(t *testing.T) {
+		changePasswordNo2faWrongOldPassword(t)
+	})
+}
+
+func changePasswordNo2faOk(t *testing.T) {
+	// First signup a user without 2FA
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Header("x-login-source", "test")
+	ctx.Header("user-agent", "test")
+	req := httptest.NewRequest("POST", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
+
+	dbConnection := db.Connect(dbConfig)
+	defer dbConnection.Close()
+	tokenQuery := tokens.New(dbConnection)
+	tokenService := tokens.NewService(tokenQuery, []byte("JWT_$€CR€T"), "")
+	twoFAQuery := twoFA.New(dbConnection)
+	twoFaService := twoFA.NewService("go-jwt-server", twoFAQuery)
+	userStorage := New(dbConnection)
+	userService := NewService(userStorage, twoFaService, tokenService)
+
+	// Get the user
+	userByEmail, err := userStorage.GetEntireUserByEmail(ctx, "first.last@example.com")
+	require.NoError(t, err)
+	require.NotEmpty(t, userByEmail)
+
+	// Change password
+	newPassword := "NewPassw0rd!"
+	changePasswordReq := api.ChangePassword{
+		OldPassword: "Som€_$trong_P@$$word",
+		NewPassword: newPassword,
+	}
+
+	res, err := userService.ChangePassword(ctx, userByEmail.Email, userByEmail.UserID, changePasswordReq)
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+
+	// Verify login with new password works
+	loginReq := api.UserLogin{
+		Email:    openapi_types.Email("first.last@example.com"),
+		Password: newPassword,
+	}
+	loginRes, err := userService.Login(ctx, api.LoginParams{
+		XLoginSource: api.LoginParamsXLoginSourceApi,
+		UserAgent:    "test",
+	}, loginReq)
+	assert.NoError(t, err)
+	loginSuccess, ok := loginRes.(api.LoginSuccessWithJWT)
+	assert.True(t, ok)
+	assert.NotEmpty(t, loginSuccess.AccessToken)
+	assert.NotEmpty(t, loginSuccess.RefreshToken)
+}
+
+func changePasswordNo2faWrongOldPassword(t *testing.T) {
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+
+	dbConnection := db.Connect(dbConfig)
+	defer dbConnection.Close()
+	tokenQuery := tokens.New(dbConnection)
+	tokenService := tokens.NewService(tokenQuery, []byte("JWT_$€CR€T"), "")
+	twoFAQuery := twoFA.New(dbConnection)
+	twoFaService := twoFA.NewService("go-jwt-server", twoFAQuery)
+	userStorage := New(dbConnection)
+	userService := NewService(userStorage, twoFaService, tokenService)
+
+	// Get the user
+	userByEmail, err := userStorage.GetEntireUserByEmail(ctx, "first.last@example.com")
+	require.NoError(t, err)
+	require.NotEmpty(t, userByEmail)
+
+	// Try to change password with wrong old password
+	changePasswordReq := api.ChangePassword{
+		OldPassword: "WrongPassw0rd!",
+		NewPassword: "NewPassw0rd!",
+	}
+
+	_, err = userService.ChangePassword(ctx, userByEmail.Email, userByEmail.UserID, changePasswordReq)
+	assert.Error(t, err)
+	var he httperror.HttpError
+	assert.True(t, errors.As(err, &he))
+	assert.Equal(t, httperror.InvalidCredentials, he.ErrorCode)
+}
+
+func TestIntegrationService_ChangePassword_2FA(t *testing.T) {
+	t.Run("Change Password with 2FA - Success", func(t *testing.T) {
+		truncateTables()
+		res := signup2faOk(t)
+		changePassword2faOk(t, res)
+	})
+	t.Run("Change Password with 2FA - Wrong 2FA Code", func(t *testing.T) {
+		truncateTables()
+		_ = signup2faOk(t)
+		changePassword2faWrongCode(t)
+	})
+	t.Run("Change Password with 2FA - Missing 2FA Code", func(t *testing.T) {
+		truncateTables()
+		_ = signup2faOk(t)
+		changePassword2faMissingCode(t)
+	})
+	t.Run("Change Password with 2FA - Wrong Old Password", func(t *testing.T) {
+		truncateTables()
+		res := signup2faOk(t)
+		changePassword2faWrongOldPassword(t, res)
+	})
+}
+
+func changePassword2faOk(t *testing.T, res api.SignUpWith2FAResponse) {
+	// First signup a user with 2FA
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+	ctx.Header("x-login-source", "test")
+	ctx.Header("user-agent", "test")
+	req := httptest.NewRequest("POST", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
+
+	dbConnection := db.Connect(dbConfig)
+	defer dbConnection.Close()
+	tokenQuery := tokens.New(dbConnection)
+	tokenService := tokens.NewService(tokenQuery, []byte("JWT_$€CR€T"), "")
+	twoFAQuery := twoFA.New(dbConnection)
+	twoFaService := twoFA.NewService("go-jwt-server", twoFAQuery)
+	userStorage := New(dbConnection)
+	userService := NewService(userStorage, twoFaService, tokenService)
+
+	// Get the user
+	userByEmail, err := userStorage.GetEntireUserByEmail(ctx, "first.last@example.com")
+	require.NoError(t, err)
+	require.NotEmpty(t, userByEmail)
+
+	// Generate a valid 2FA code
+	passcode, err := totp.GenerateCode(res.Secret, time.Now())
+	require.NoError(t, err)
+
+	// Change password with valid 2FA code
+	newPassword := "NewPassw0rd!"
+	changePasswordReq := api.ChangePassword{
+		OldPassword: "Som€_$trong_P@$$word",
+		NewPassword: newPassword,
+		TwoFACode:   &passcode,
+	}
+
+	resChange, err := userService.ChangePassword(ctx, userByEmail.Email, userByEmail.UserID, changePasswordReq)
+	assert.NoError(t, err)
+	assert.NotNil(t, resChange)
+
+	// For 2FA users, login returns temp token (LoginRequires2FA), not full JWT
+	// Verify the password change worked by doing a 2FA login flow
+	loginReq := api.UserLogin{
+		Email:    openapi_types.Email("first.last@example.com"),
+		Password: newPassword,
+	}
+	loginRes, err := userService.Login(ctx, api.LoginParams{
+		XLoginSource: api.LoginParamsXLoginSourceApi,
+		UserAgent:    "test",
+	}, loginReq)
+	assert.NoError(t, err)
+	loginRequires2FA, ok := loginRes.(api.LoginRequires2FA)
+	assert.True(t, ok)
+	assert.NotEmpty(t, loginRequires2FA.TempToken)
+
+	// Now verify with 2FA code
+	passcode2, err := totp.GenerateCode(res.Secret, time.Now())
+	require.NoError(t, err)
+	login2FARes, err := userService.Login2FA(ctx, api.Login2FAParams{}, userByEmail.UserID, passcode2)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, login2FARes.AccessToken)
+	assert.NotEmpty(t, login2FARes.RefreshToken)
+}
+
+func changePassword2faWrongCode(t *testing.T) {
+	// First signup a user with 2FA
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+
+	dbConnection := db.Connect(dbConfig)
+	defer dbConnection.Close()
+	tokenQuery := tokens.New(dbConnection)
+	tokenService := tokens.NewService(tokenQuery, []byte("JWT_$€CR€T"), "")
+	twoFAQuery := twoFA.New(dbConnection)
+	twoFaService := twoFA.NewService("go-jwt-server", twoFAQuery)
+	userStorage := New(dbConnection)
+	userService := NewService(userStorage, twoFaService, tokenService)
+
+	// Get the user
+	userByEmail, err := userStorage.GetEntireUserByEmail(ctx, "first.last@example.com")
+	require.NoError(t, err)
+	require.NotEmpty(t, userByEmail)
+
+	// Try to change password with invalid 2FA code
+	twoFACOde := "000000"
+	changePasswordReq := api.ChangePassword{
+		OldPassword: "Som€_$trong_P@$$word",
+		NewPassword: "NewPassw0rd!",
+		TwoFACode:   &twoFACOde,
+	}
+
+	_, err = userService.ChangePassword(ctx, userByEmail.Email, userByEmail.UserID, changePasswordReq)
+	assert.Error(t, err)
+	var he httperror.HttpError
+	assert.True(t, errors.As(err, &he))
+	assert.Equal(t, httperror.InvalidTwoFA, he.ErrorCode)
+}
+
+func changePassword2faMissingCode(t *testing.T) {
+	// First signup a user with 2FA
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+
+	dbConnection := db.Connect(dbConfig)
+	defer dbConnection.Close()
+	tokenQuery := tokens.New(dbConnection)
+	tokenService := tokens.NewService(tokenQuery, []byte("JWT_$€CR€T"), "")
+	twoFAQuery := twoFA.New(dbConnection)
+	twoFaService := twoFA.NewService("go-jwt-server", twoFAQuery)
+	userStorage := New(dbConnection)
+	userService := NewService(userStorage, twoFaService, tokenService)
+
+	// Get the user
+	userByEmail, err := userStorage.GetEntireUserByEmail(ctx, "first.last@example.com")
+	require.NoError(t, err)
+	require.NotEmpty(t, userByEmail)
+
+	// Try to change password without 2FA code
+	changePasswordReq := api.ChangePassword{
+		OldPassword: "Som€_$trong_P@$$word",
+		NewPassword: "NewPassw0rd!",
+	}
+
+	_, err = userService.ChangePassword(ctx, userByEmail.Email, userByEmail.UserID, changePasswordReq)
+	assert.Error(t, err)
+	var he httperror.HttpError
+	assert.True(t, errors.As(err, &he))
+	assert.Equal(t, httperror.TwoFARequired, he.ErrorCode)
+}
+
+func changePassword2faWrongOldPassword(t *testing.T, res api.SignUpWith2FAResponse) {
+	// First signup a user with 2FA
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+
+	dbConnection := db.Connect(dbConfig)
+	defer dbConnection.Close()
+	tokenQuery := tokens.New(dbConnection)
+	tokenService := tokens.NewService(tokenQuery, []byte("JWT_$€CR€T"), "")
+	twoFAQuery := twoFA.New(dbConnection)
+	twoFaService := twoFA.NewService("go-jwt-server", twoFAQuery)
+	userStorage := New(dbConnection)
+	userService := NewService(userStorage, twoFaService, tokenService)
+
+	// Get the user
+	userByEmail, err := userStorage.GetEntireUserByEmail(ctx, "first.last@example.com")
+	require.NoError(t, err)
+	require.NotEmpty(t, userByEmail)
+
+	// Generate a valid 2FA code
+	passcode, err := totp.GenerateCode(res.Secret, time.Now())
+	require.NoError(t, err)
+
+	// Try to change password with wrong old password but valid 2FA code
+	changePasswordReq := api.ChangePassword{
+		OldPassword: "WrongPassw0rd!",
+		NewPassword: "NewPassw0rd!",
+		TwoFACode:   &passcode,
+	}
+
+	_, err = userService.ChangePassword(ctx, userByEmail.Email, userByEmail.UserID, changePasswordReq)
+	assert.Error(t, err)
+	var he httperror.HttpError
+	assert.True(t, errors.As(err, &he))
+	assert.Equal(t, httperror.InvalidCredentials, he.ErrorCode)
 }
