@@ -8,6 +8,7 @@ linters-settings:
     exclude-godoc-examples: true
     forbid:
       - p: ^time\.Now$
+        pkg: ^time$
         msg: use pkg/time.Now() instead of time.Now()
 issues:
   exclude-rules:

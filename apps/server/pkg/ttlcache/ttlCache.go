@@ -3,6 +3,8 @@ package ttlcache
 import (
 	"sync"
 	"time"
+
+	pkgtime "github.com/spdeepak/aegis/server/pkg/time"
 )
 
 type (
@@ -37,7 +39,7 @@ func (c *Cache) Set(key string, value any, ttl time.Duration) {
 
 	c.items[key] = item{
 		Value:      value,
-		Expiration: time.Now().UTC().Add(ttl),
+		Expiration: pkgtime.Now().UTC().Add(ttl),
 	}
 }
 
@@ -50,7 +52,7 @@ func (c *Cache) Get(key string) (any, bool) {
 		return nil, false
 	}
 
-	if time.Now().UTC().After(item.Expiration) {
+	if pkgtime.Now().UTC().After(item.Expiration) {
 		c.mu.Lock()
 		delete(c.items, key)
 		c.mu.Unlock()
@@ -72,7 +74,7 @@ func (c *Cache) startCleanup(interval time.Duration) {
 	for {
 		select {
 		case <-ticker.C:
-			now := time.Now().UTC()
+			now := pkgtime.Now().UTC()
 
 			c.mu.Lock()
 			for k, v := range c.items {

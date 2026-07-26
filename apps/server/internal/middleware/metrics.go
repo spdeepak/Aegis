@@ -9,6 +9,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
+
+	pkgtime "github.com/spdeepak/aegis/server/pkg/time"
 )
 
 const (
@@ -68,7 +70,7 @@ func MetricHandler() gin.HandlerFunc {
 		if ctx.Request.ContentLength > 0 {
 			requestSize.WithLabelValues(ctx.Request.Method, path).Observe(float64(ctx.Request.ContentLength))
 		}
-		start := time.Now()
+		start := pkgtime.Now()
 		ctx.Next()
 		duration := time.Since(start)
 		httpStatusCode := strconv.Itoa(ctx.Writer.Status())

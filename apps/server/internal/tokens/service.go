@@ -12,6 +12,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	pkgtime "github.com/spdeepak/aegis/server/pkg/time"
 
 	"github.com/spdeepak/aegis/server/api"
 	"github.com/spdeepak/aegis/server/internal/error"
@@ -94,7 +95,7 @@ func (s *service) ValidateRefreshToken(ctx context.Context, clientIP string, par
 }
 
 func (s *service) GenerateNewTokenPair(ctx context.Context, clientIP string, params TokenParams, user User, roles, permissions []string) (api.LoginSuccessWithJWT, error) {
-	now := time.Now()
+	now := pkgtime.Now()
 	accessClaims := s.bearerTokenClaims(user, now, roles, permissions)
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
 	signedAccessToken, err := accessToken.SignedString(s.secret)
@@ -131,7 +132,7 @@ func (s *service) GenerateNewTokenPair(ctx context.Context, clientIP string, par
 }
 
 func (s *service) RefreshAndInvalidateToken(ctx context.Context, clientIP string, params TokenParams, refresh api.Refresh, user User, roles, permissions []string) (api.LoginSuccessWithJWT, error) {
-	now := time.Now()
+	now := pkgtime.Now()
 	accessClaims := s.bearerTokenClaims(user, now, roles, permissions)
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
 	signedAccessToken, err := accessToken.SignedString(s.secret)
@@ -210,7 +211,7 @@ func (s *service) ListActiveSessions(ctx context.Context, email string) ([]api.G
 }
 
 func (s *service) GenerateTempToken(ctx context.Context, userId int64) (api.LoginRequires2FA, error) {
-	now := time.Now()
+	now := pkgtime.Now()
 	tempTokenClaims := s.tempTokenClaims(userId, now)
 	tempToken := jwt.NewWithClaims(jwt.SigningMethodHS256, tempTokenClaims)
 	signedTempToken, err := tempToken.SignedString(s.secret)
@@ -230,7 +231,7 @@ func (s *service) tempTokenClaims(userId int64, now time.Time) TokenClaims {
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    s.issuer,
 			Subject:   strconv.FormatInt(userId, 10),
-			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(5 * time.Minute)},
+			ExpiresAt: &jwt.NumericDate{Time: pkgtime.Now().Add(5 * time.Minute)},
 			NotBefore: &jwt.NumericDate{Time: now},
 			IssuedAt:  &jwt.NumericDate{Time: now},
 			ID:        uuid.NewString(),
@@ -290,7 +291,7 @@ func (s *service) verifyToken(tokenStr string) (jwt.MapClaims, error) {
 	if ok && token.Valid {
 		if expTime, ok := claims["exp"].(float64); ok {
 			expirationTime := time.Unix(int64(expTime), 0)
-			if expirationTime.Before(time.Now()) {
+			if expirationTime.Before(pkgtime.Now()) {
 				return nil, httperror.New(httperror.ExpiredRefreshToken)
 			}
 		} else {

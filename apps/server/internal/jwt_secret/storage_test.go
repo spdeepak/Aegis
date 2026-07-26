@@ -30,7 +30,7 @@ func TestStorage_saveDefaultSecret_NOK_DefaultSecretCreateFail(t *testing.T) {
 		query.EXPECT().GetDefaultSecret(ctx).Return(JwtSecret{Secret: secret}, errors.New("error"))
 		query.EXPECT().CreateDefaultSecret(ctx, secret).Return(errors.New("error"))
 		storage := NewStorage(query)
-		storage.saveDefaultSecret(context.Background(), secret)
+		storage.saveDefaultSecret(context.Background(), secret) //nolint:errcheck // expected to fatal before return
 		return
 	}
 

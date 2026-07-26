@@ -173,8 +173,8 @@ type (
 
 func (a *authPolicy) evalAnyOf(userRoles []string, userPerms []string, isSelf bool) bool {
 	// If nothing is specified, allow
-	if (a.AnyOf.Roles == nil || len(a.AnyOf.Roles) == 0) &&
-		(a.AnyOf.Permissions == nil || len(a.AnyOf.Permissions) == 0) &&
+	if len(a.AnyOf.Roles) == 0 &&
+		len(a.AnyOf.Permissions) == 0 &&
 		!a.Self {
 		return true
 	}
@@ -205,14 +205,14 @@ func (a *authPolicy) evalAllOf(userRoles []string, userPerms []string, isSelf bo
 	}
 
 	// Check all required roles
-	if a.AllOf.Roles != nil && len(a.AllOf.Roles) > 0 {
+	if len(a.AllOf.Roles) > 0 {
 		if !util.HasAll(a.AllOf.Roles, userRoles) {
 			return false
 		}
 	}
 
 	// Check all required permissions
-	if a.AllOf.Permissions != nil && len(a.AllOf.Permissions) > 0 {
+	if len(a.AllOf.Permissions) > 0 {
 		if !util.HasAll(a.AllOf.Permissions, userPerms) {
 			return false
 		}

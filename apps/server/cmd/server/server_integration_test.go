@@ -286,6 +286,7 @@ func TestServer_Login_2FA_NOK_Expired2FA(t *testing.T) {
 	login2faBytes, err := json.Marshal(api.Login2FARequest{
 		TwoFACode: generateCode,
 	})
+	assert.NoError(t, err)
 	req, err := http.NewRequest(http.MethodPost, "/api/v1/auth/2fa/login", bytes.NewReader(login2faBytes))
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
@@ -312,6 +313,7 @@ func TestServer_Login_2FA_NOK_InvalidRequestBody(t *testing.T) {
 
 	//Login with temp_token and 2FA code to get Bearer and Refresh token
 	login2faBytes, err := json.Marshal(`{}`)
+	assert.NoError(t, err)
 	req, err := http.NewRequest(http.MethodPost, "/api/v1/auth/2fa/login", bytes.NewReader(login2faBytes))
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
@@ -629,6 +631,7 @@ func TestServer_UpdateRoleById_OK(t *testing.T) {
 	updateRole, err := json.Marshal(api.UpdateRole{
 		Description: &updatedRoleDescription,
 	})
+	assert.NoError(t, err)
 	req, err := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/access-control/roles/%d", roleRes.Id), bytes.NewReader(updateRole))
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
@@ -668,6 +671,7 @@ func TestServer_UpdateRoleById_NOK_RoleNotFound(t *testing.T) {
 	updateRole, err := json.Marshal(api.UpdateRole{
 		Description: &updatedRoleDescription,
 	})
+	assert.NoError(t, err)
 	req, err := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/access-control/roles/%d", roleRes.Id), bytes.NewReader(updateRole))
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
@@ -785,6 +789,7 @@ func TestServer_UpdatePermissionById_OK(t *testing.T) {
 	updatePermission, err := json.Marshal(api.UpdatePermission{
 		Description: &updatedPermissionDescription,
 	})
+	assert.NoError(t, err)
 	req, err := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/access-control/permissions/%d", permissionRes.Id), bytes.NewReader(updatePermission))
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
@@ -824,6 +829,7 @@ func TestServer_UpdatePermissionById_NOK_PermissionNotFound(t *testing.T) {
 	updatePermission, err := json.Marshal(api.UpdatePermission{
 		Description: &updatedPermissionDescription,
 	})
+	assert.NoError(t, err)
 	req, err := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/access-control/permissions/%d", permissionRes.Id), bytes.NewReader(updatePermission))
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
@@ -1183,7 +1189,7 @@ func TestServer_EnableUser_OK(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, user)
 	assert.True(t, user.Disabled)
-	enableUser(t, err, user, loginRes)
+	enableUser(t, user, loginRes)
 	//Get User details
 	user, err = userQuery.GetEntireUserByEmail(context.Background(), "first.last@example.com")
 	assert.NoError(t, err)
@@ -1368,6 +1374,7 @@ func loginWithTempToken2FACode(t *testing.T, generateCode string, res api.LoginR
 	login2faBytes, err := json.Marshal(api.Login2FARequest{
 		TwoFACode: generateCode,
 	})
+	assert.NoError(t, err)
 
 	req, err := http.NewRequest(http.MethodPost, "/api/v1/auth/2fa/login", bytes.NewReader(login2faBytes))
 	assert.NotNil(t, req)
@@ -1672,7 +1679,7 @@ func disableUser(t *testing.T, user users.GetEntireUserByEmailRow, loginRes api.
 	assert.Empty(t, recorder.Body.String())
 }
 
-func enableUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
+func enableUser(t *testing.T, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
 	//Enable endpoint
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%d/enable", user.UserID), nil)
 	assert.NoError(t, err)

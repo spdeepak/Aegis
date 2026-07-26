@@ -11,6 +11,7 @@ import (
 	"github.com/spdeepak/aegis/server/api"
 	httperror "github.com/spdeepak/aegis/server/internal/error"
 	"github.com/spdeepak/aegis/server/internal/tokens"
+	pkgtime "github.com/spdeepak/aegis/server/pkg/time"
 )
 
 type (
@@ -66,7 +67,7 @@ func (s *defaultValidator) verifyToken(tokenStr string) (jwt.MapClaims, error) {
 	if ok && token.Valid {
 		if expTime, ok := claims["exp"].(float64); ok {
 			expirationTime := time.Unix(int64(expTime), 0)
-			if expirationTime.Before(time.Now()) {
+			if expirationTime.Before(pkgtime.Now()) {
 				return nil, httperror.New(httperror.ExpiredRefreshToken)
 			}
 		} else {

@@ -133,9 +133,7 @@ func (s *service) UpdateRoleById(ctx context.Context, id api.Id, email string, p
 
 func (s *service) AssignPermissionToRole(ctx context.Context, roleId api.Id, params api.AssignPermissionToRoleParams, assignPermission api.AssignPermission, email string) error {
 	permissionIds := make([]int64, len(assignPermission.Ids))
-	for index, id := range assignPermission.Ids {
-		permissionIds[index] = id
-	}
+	copy(permissionIds, assignPermission.Ids)
 	assignPermissionsToRole := AssignPermissionsParams{
 		RoleID:       roleId,
 		PermissionID: permissionIds,
