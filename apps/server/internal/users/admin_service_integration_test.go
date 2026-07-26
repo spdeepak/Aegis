@@ -10,11 +10,9 @@ import (
 	"github.com/spdeepak/aegis/server/internal/db"
 )
 
-type testContextKey string
-
 const (
-	testUserIDKey testContextKey = "User-ID"
-	testUserIPKey testContextKey = "user-ip"
+	testUserIDKey = "User-ID"
+	testUserIPKey = "user-ip"
 )
 
 func TestAdminService_LockUserById_OK(t *testing.T) {
