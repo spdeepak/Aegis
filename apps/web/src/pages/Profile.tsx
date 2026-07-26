@@ -6,7 +6,7 @@ import { Input } from '../components/ui/Input'
 import { TwoFAPopup, isTwoFARequired } from '../components/ui/TwoFAPopup'
 
 export function Profile() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const [sessions, setSessions] = useState<Session[]>([])
   const [loadingSessions, setLoadingSessions] = useState(true)
   const [oldPassword, setOldPassword] = useState('')
@@ -88,7 +88,7 @@ export function Profile() {
     if (!confirm('Revoke all sessions? This will sign you out everywhere.')) return
     try {
       await auth.revokeAllSessions()
-      setSessions([])
+      logout()
     } catch { /* ignore */ }
   }
 

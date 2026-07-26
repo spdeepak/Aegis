@@ -6,8 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"testing"
-	"time"
 
+	"github.com/spdeepak/aegis/server/pkg/time"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -1063,7 +1063,7 @@ func TestServer_LockUser_OK(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, user)
 	assert.False(t, user.Locked)
-	lockUser(t, err, user, loginRes)
+	lockUser(t, user, loginRes)
 	//Get User details
 	user, err = userQuery.GetEntireUserByEmail(context.Background(), "first.last@example.com")
 	assert.NoError(t, err)
@@ -1099,13 +1099,13 @@ func TestServer_UnlockUser_OK(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, user)
 	assert.False(t, user.Locked)
-	lockUser(t, err, user, loginRes)
+	lockUser(t, user, loginRes)
 	//Get User details
 	user, err = userQuery.GetEntireUserByEmail(context.Background(), "first.last@example.com")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, user)
 	assert.True(t, user.Locked)
-	unlockUser(t, err, user, loginRes)
+	unlockUser(t, user, loginRes)
 	//Get User details
 	user, err = userQuery.GetEntireUserByEmail(context.Background(), "first.last@example.com")
 	assert.NoError(t, err)
@@ -1141,7 +1141,7 @@ func TestServer_DisableUser_OK(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, user)
 	assert.False(t, user.Disabled)
-	disableUser(t, err, user, loginRes)
+	disableUser(t, user, loginRes)
 	//Get User details
 	user, err = userQuery.GetEntireUserByEmail(context.Background(), "first.last@example.com")
 	assert.NoError(t, err)
@@ -1177,7 +1177,7 @@ func TestServer_EnableUser_OK(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, user)
 	assert.False(t, user.Disabled)
-	disableUser(t, err, user, loginRes)
+	disableUser(t, user, loginRes)
 	//Get User details
 	user, err = userQuery.GetEntireUserByEmail(context.Background(), "first.last@example.com")
 	assert.NoError(t, err)
@@ -1630,7 +1630,7 @@ func removeRolesFromUser(t *testing.T, role api.RoleResponse, loginRes api.Login
 	assert.NotEqualValues(t, user.PermissionNames, updatedUser.PermissionNames)
 }
 
-func lockUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
+func lockUser(t *testing.T, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
 	//Lock endpoint
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%d/lock", user.UserID), nil)
 	assert.NoError(t, err)
@@ -1644,7 +1644,7 @@ func lockUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, login
 	assert.Empty(t, recorder.Body.String())
 }
 
-func unlockUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
+func unlockUser(t *testing.T, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
 	//Lock endpoint
 	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/users/%d/lock", user.UserID), nil)
 	assert.NoError(t, err)
@@ -1658,7 +1658,7 @@ func unlockUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, log
 	assert.Empty(t, recorder.Body.String())
 }
 
-func disableUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
+func disableUser(t *testing.T, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
 	//Disable endpoint
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%d/disable", user.UserID), nil)
 	assert.NoError(t, err)

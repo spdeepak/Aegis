@@ -97,3 +97,9 @@ FROM tokens
 WHERE email = sqlc.arg('email')
   AND revoked = false
   AND refresh_expires_at > now();
+
+-- name: ListRevokedValidRefreshTokens :many
+SELECT  *
+FROM tokens
+WHERE revoked = true
+    AND refresh_expires_at > now();

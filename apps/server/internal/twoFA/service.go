@@ -5,12 +5,11 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 	"github.com/skip2/go-qrcode"
-	_ "github.com/skip2/go-qrcode"
+	"github.com/spdeepak/aegis/server/pkg/time"
 
 	"github.com/spdeepak/aegis/server/api"
 	"github.com/spdeepak/aegis/server/internal/error"

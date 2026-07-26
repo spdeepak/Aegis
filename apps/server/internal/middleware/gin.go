@@ -13,6 +13,7 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/gin-gonic/gin"
 	ginmiddleware "github.com/oapi-codegen/gin-middleware"
+	pkt "github.com/spdeepak/aegis/server/pkg/time"
 
 	httperror "github.com/spdeepak/aegis/server/internal/error"
 )
@@ -33,7 +34,7 @@ func GinLogger() gin.HandlerFunc {
 			return // ignore
 		}
 
-		startTime := time.Now()
+		startTime := pkt.Now()
 		c.Next()
 		latency := time.Since(startTime).Milliseconds()
 
@@ -122,12 +123,4 @@ func logWarning(c *gin.Context, err *gin.Error, logAttributes []any) {
 	} else {
 		slog.WarnContext(c, "", append(logAttributes, slog.String("error", err.Error()), slog.String("path", c.Request.URL.Path))...)
 	}
-}
-
-func toStringSlice(in []interface{}) []string {
-	out := make([]string, len(in))
-	for i, v := range in {
-		out[i] = v.(string)
-	}
-	return out
 }
