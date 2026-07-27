@@ -87,16 +87,16 @@ func TestHandler_Handle(t *testing.T) {
 		{
 			name: "context with correlation id",
 			setupContext: func() context.Context {
-				return context.WithValue(context.Background(), CorrelationIdHeader, "test-correlation-123")
+				return context.WithValue(context.Background(), CorrelationIdHeader, "test-correlation-123") //nolint:staticcheck // SA1029: must match handler.go string key
 			},
 			expectedExtras: map[string]interface{}{
-				CorrelationIdHeader: "test-correlation-123",
+				"Correlation-Id": "test-correlation-123",
 			},
 		},
 		{
 			name: "context with agent name",
 			setupContext: func() context.Context {
-				return context.WithValue(context.Background(), AgentNameHeader, "test-agent")
+				return context.WithValue(context.Background(), AgentNameHeader, "test-agent") //nolint:staticcheck // SA1029: must match handler.go string key
 			},
 			expectedExtras: map[string]interface{}{
 				AgentNameHeader: "test-agent",
@@ -105,7 +105,7 @@ func TestHandler_Handle(t *testing.T) {
 		{
 			name: "context with user email",
 			setupContext: func() context.Context {
-				return context.WithValue(context.Background(), UserEmailHeader, "user@example.com")
+				return context.WithValue(context.Background(), UserEmailHeader, "user@example.com") //nolint:staticcheck // SA1029: must match handler.go string key
 			},
 			expectedExtras: map[string]interface{}{
 				UserEmailHeader: "user@example.com",
@@ -114,15 +114,15 @@ func TestHandler_Handle(t *testing.T) {
 		{
 			name: "context with all headers",
 			setupContext: func() context.Context {
-				ctx := context.WithValue(context.Background(), CorrelationIdHeader, "corr-456")
-				ctx = context.WithValue(ctx, AgentNameHeader, "my-agent")
-				ctx = context.WithValue(ctx, UserEmailHeader, "test@test.com")
+				ctx := context.WithValue(context.Background(), CorrelationIdHeader, "corr-456") //nolint:staticcheck // SA1029: must match handler.go string key
+				ctx = context.WithValue(ctx, AgentNameHeader, "my-agent")                       //nolint:staticcheck // SA1029: must match handler.go string key
+				ctx = context.WithValue(ctx, UserEmailHeader, "test@test.com")                  //nolint:staticcheck // SA1029: must match handler.go string key
 				return ctx
 			},
 			expectedExtras: map[string]interface{}{
-				CorrelationIdHeader: "corr-456",
-				AgentNameHeader:     "my-agent",
-				UserEmailHeader:     "test@test.com",
+				"Correlation-Id": "corr-456",
+				AgentNameHeader:  "my-agent",
+				UserEmailHeader:  "test@test.com",
 			},
 		},
 	}
@@ -260,10 +260,10 @@ func TestHandler_Handle_ContextOverridesRecordAttrs(t *testing.T) {
 	mock := &mockHandler{}
 	h := NewHandler(mock)
 
-	ctx := context.WithValue(context.Background(), CorrelationIdHeader, "context-correlation")
+	ctx := context.WithValue(context.Background(), CorrelationIdHeader, "context-correlation") //nolint:staticcheck // SA1029: must match handler.go string key
 
 	record := slog.NewRecord(time.Now(), slog.LevelInfo, "test message", 0)
-	record.AddAttrs(slog.String(CorrelationIdHeader, "record-correlation"))
+	record.AddAttrs(slog.String("Correlation-Id", "record-correlation"))
 
 	err := h.Handle(ctx, record)
 
@@ -274,7 +274,7 @@ func TestHandler_Handle_ContextOverridesRecordAttrs(t *testing.T) {
 	var extra map[string]interface{}
 	require.NoError(t, json.Unmarshal([]byte(extraStr), &extra))
 
-	assert.Equal(t, "context-correlation", extra[CorrelationIdHeader])
+	assert.Equal(t, "context-correlation", extra["Correlation-Id"])
 }
 
 func TestGetLogLevelFromEnv(t *testing.T) {
