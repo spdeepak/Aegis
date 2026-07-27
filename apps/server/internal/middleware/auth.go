@@ -62,7 +62,7 @@ func JWTAuthMiddleware(secret []byte, skipPaths []string, issuer string) gin.Han
 		token, err := jwt.ParseWithClaims(
 			tokenStr,
 			&tokens.TokenClaims{},
-			func(token *jwt.Token) (interface{}, error) {
+			func(token *jwt.Token) (any, error) {
 				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 					return nil, jwt.ErrTokenUnverifiable
 				}

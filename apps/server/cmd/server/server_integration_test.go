@@ -22,13 +22,14 @@ import (
 	"github.com/spdeepak/aegis/server/internal/config"
 	"github.com/spdeepak/aegis/server/internal/db"
 	"github.com/spdeepak/aegis/server/internal/error"
-	middleware2 "github.com/spdeepak/aegis/server/internal/middleware"
+	"github.com/spdeepak/aegis/server/internal/middleware"
 	"github.com/spdeepak/aegis/server/internal/permissions"
 	"github.com/spdeepak/aegis/server/internal/roles"
 	"github.com/spdeepak/aegis/server/internal/tokens"
 	"github.com/spdeepak/aegis/server/internal/twoFA"
 	"github.com/spdeepak/aegis/server/internal/users"
 	"github.com/spdeepak/aegis/server/pkg/logging"
+	pkgTime "github.com/spdeepak/aegis/server/pkg/time"
 )
 
 var roleQuery roles.Querier
@@ -72,11 +73,11 @@ func TestMain(m *testing.M) {
 	swagger.Servers = nil
 	router = gin.New()
 	router.Use(
-		middleware2.RequestValidator(swagger),
-		middleware2.JWTAuthMiddleware([]byte("JWT_$€Cr€t"), nil, "test-issuer"),
+		middleware.RequestValidator(swagger),
+		middleware.JWTAuthMiddleware([]byte("JWT_$€Cr€t"), nil, "test-issuer"),
 		gin.Recovery(),
-		middleware2.ErrorMiddleware,
-		middleware2.GinLogger(),
+		middleware.ErrorMiddleware,
+		middleware.GinLogger(),
 	)
 	server := NewServer(userService, rolesService, permissionService, tokenService, twoFaService, adminService)
 	api.RegisterHandlers(router, server)
@@ -267,7 +268,7 @@ func TestServer_Login_2FA_OK(t *testing.T) {
 	res := login2FAEnabledTempToken(t)
 
 	//Login with temp_token and 2FA code to get Bearer and Refresh token
-	generateCode, err := totp.GenerateCode(signupRes.Secret, time.Now())
+	generateCode, err := totp.GenerateCode(signupRes.Secret, pkgTime.Now())
 	assert.NoError(t, err)
 	loginWithTempToken2FACode(t, generateCode, res)
 }
@@ -281,7 +282,7 @@ func TestServer_Login_2FA_NOK_Expired2FA(t *testing.T) {
 	res := login2FAEnabledTempToken(t)
 
 	//Login with temp_token and 2FA code to get Bearer and Refresh token
-	generateCode, err := totp.GenerateCode(signupRes.Secret, time.Now().Add(-100*time.Minute))
+	generateCode, err := totp.GenerateCode(signupRes.Secret, pkgTime.Now().Add(-100*time.Minute))
 	assert.NoError(t, err)
 	login2faBytes, err := json.Marshal(api.Login2FARequest{
 		TwoFACode: generateCode,
@@ -484,12 +485,12 @@ func TestServer_Remove2FA_OK(t *testing.T) {
 	res := login2FAEnabledTempToken(t)
 
 	//Login with temp_token and 2FA code to get Bearer and Refresh token
-	generateCode, err := totp.GenerateCode(signupRes.Secret, time.Now())
+	generateCode, err := totp.GenerateCode(signupRes.Secret, pkgTime.Now())
 	assert.NoError(t, err)
 	twoFaLoginResp := loginWithTempToken2FACode(t, generateCode, res)
 
 	//Remove 2FA
-	generateCode, err = totp.GenerateCode(signupRes.Secret, time.Now())
+	generateCode, err = totp.GenerateCode(signupRes.Secret, pkgTime.Now())
 	assert.NoError(t, err)
 	twoFABytes, err := json.Marshal(api.Remove2FARequest{
 		TwoFACode: generateCode,

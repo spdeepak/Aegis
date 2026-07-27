@@ -12,6 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	pkgTime "github.com/spdeepak/aegis/server/pkg/time"
 )
 
 type capturedRecord struct {
@@ -136,7 +138,7 @@ func TestHandler_Handle(t *testing.T) {
 			h := NewHandler(mock)
 			ctx := tt.setupContext()
 
-			record := slog.NewRecord(time.Now(), slog.LevelInfo, "test message", 0)
+			record := slog.NewRecord(pkgTime.Now(), slog.LevelInfo, "test message", 0)
 			err := h.Handle(ctx, record)
 
 			require.NoError(t, err)
@@ -212,7 +214,7 @@ func TestHandler_Handle_WithGinContext(t *testing.T) {
 				ginCtx.Request.Header.Set(k, v)
 			}
 
-			record := slog.NewRecord(time.Now(), slog.LevelInfo, "test message", 0)
+			record := slog.NewRecord(pkgTime.Now(), slog.LevelInfo, "test message", 0)
 			err := h.Handle(ginCtx, record)
 
 			require.NoError(t, err)
@@ -233,7 +235,7 @@ func TestHandler_Handle_WithRecordAttributes(t *testing.T) {
 	mock := &mockHandler{}
 	h := NewHandler(mock)
 
-	record := slog.NewRecord(time.Now(), slog.LevelInfo, "test message", 0)
+	record := slog.NewRecord(pkgTime.Now(), slog.LevelInfo, "test message", 0)
 	record.AddAttrs(
 		slog.String("key1", "value1"),
 		slog.Int("key2", 42),
@@ -262,7 +264,7 @@ func TestHandler_Handle_ContextOverridesRecordAttrs(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), ctxKeyCorrelationId, "context-correlation")
 
-	record := slog.NewRecord(time.Now(), slog.LevelInfo, "test message", 0)
+	record := slog.NewRecord(pkgTime.Now(), slog.LevelInfo, "test message", 0)
 	record.AddAttrs(slog.String("Correlation-Id", "record-correlation"))
 
 	err := h.Handle(ctx, record)

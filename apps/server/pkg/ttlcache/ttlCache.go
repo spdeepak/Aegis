@@ -39,7 +39,7 @@ func (c *Cache) Set(key string, value any, ttl time.Duration) {
 
 	c.items[key] = item{
 		Value:      value,
-		Expiration: pkgtime.Now().UTC().Add(ttl),
+		Expiration: pkgtime.Now().Add(ttl),
 	}
 }
 
@@ -52,7 +52,7 @@ func (c *Cache) Get(key string) (any, bool) {
 		return nil, false
 	}
 
-	if pkgtime.Now().UTC().After(item.Expiration) {
+	if pkgtime.Now().After(item.Expiration) {
 		c.mu.Lock()
 		delete(c.items, key)
 		c.mu.Unlock()
@@ -74,7 +74,7 @@ func (c *Cache) startCleanup(interval time.Duration) {
 	for {
 		select {
 		case <-ticker.C:
-			now := pkgtime.Now().UTC()
+			now := pkgtime.Now()
 
 			c.mu.Lock()
 			for k, v := range c.items {

@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/spdeepak/aegis/server/api"
+	pkgTime "github.com/spdeepak/aegis/server/pkg/time"
 )
 
 func TestService_GenerateSecret_OK(t *testing.T) {
@@ -41,7 +42,7 @@ func TestService_Verify2FALogin_OK(t *testing.T) {
 	twoFAQuery.EXPECT().Get2FADetails(ctx, int64(99999999)).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
 	otpService := NewService("go-jwt-server", twoFAQuery)
 
-	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-20*time.Second))
+	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", pkgTime.Now().Add(-20*time.Second))
 	assert.NoError(t, err)
 	valid, err := otpService.Verify2FALogin(ctx, api.Login2FAParams{XLoginSource: "test", UserAgent: "test"}, 99999999, passcode)
 	assert.NoError(t, err)
@@ -56,7 +57,7 @@ func TestService_Verify2FALogin_NOK_MinuteOldPasscode(t *testing.T) {
 	query.EXPECT().Get2FADetails(ctx, userId).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
 	otpService := NewService("go-jwt-server", query)
 
-	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-60*time.Second))
+	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", pkgTime.Now().Add(-60*time.Second))
 	assert.NoError(t, err)
 	valid, err := otpService.Verify2FALogin(ctx, api.Login2FAParams{}, userId, passcode)
 	assert.NoError(t, err)
@@ -71,7 +72,7 @@ func TestService_Verify2FALogin_NOK_NotFoundInDB(t *testing.T) {
 	query.EXPECT().Get2FADetails(ctx, userId).Return(Users2fa{}, errors.New("error"))
 	otpService := NewService("go-jwt-server", query)
 
-	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-60*time.Second))
+	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", pkgTime.Now().Add(-60*time.Second))
 	assert.NoError(t, err)
 	valid, err := otpService.Verify2FALogin(ctx, api.Login2FAParams{}, userId, passcode)
 	assert.Error(t, err)
@@ -87,7 +88,7 @@ func TestService_Remove2FA_OK(t *testing.T) {
 	query.EXPECT().Delete2FA(ctx, Delete2FAParams{UserID: userId, Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}).Return(nil)
 	otpService := NewService("go-jwt-server", query)
 
-	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-20*time.Second))
+	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", pkgTime.Now().Add(-20*time.Second))
 	assert.NoError(t, err)
 	err = otpService.Remove2FA(ctx, userId, passcode)
 	assert.NoError(t, err)
@@ -101,7 +102,7 @@ func TestService_Remove2FA_NOK_MinuteOldPasscode(t *testing.T) {
 	query.EXPECT().Get2FADetails(ctx, userId).Return(Users2fa{Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}, nil)
 	otpService := NewService("go-jwt-server", query)
 
-	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-60*time.Second))
+	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", pkgTime.Now().Add(-60*time.Second))
 	assert.NoError(t, err)
 	err = otpService.Remove2FA(ctx, userId, passcode)
 	assert.Error(t, err)
@@ -115,7 +116,7 @@ func TestService_Remove2FA_NOK_NotFoundInDB(t *testing.T) {
 	query.EXPECT().Get2FADetails(ctx, userId).Return(Users2fa{}, errors.New("error"))
 	otpService := NewService("go-jwt-server", query)
 
-	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-60*time.Second))
+	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", pkgTime.Now().Add(-60*time.Second))
 	assert.NoError(t, err)
 	err = otpService.Remove2FA(ctx, userId, passcode)
 	assert.Error(t, err)
@@ -130,7 +131,7 @@ func TestService_Remove2FA_NOK_DeleteInDB(t *testing.T) {
 	query.EXPECT().Delete2FA(ctx, Delete2FAParams{UserID: userId, Secret: "2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ"}).Return(errors.New("error"))
 	otpService := NewService("go-jwt-server", query)
 
-	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", time.Now().Add(-20*time.Second))
+	passcode, err := totp.GenerateCode("2Q3WE3WTYG7PYGI6B3UVA6GHSMIMHHDZ", pkgTime.Now().Add(-20*time.Second))
 	assert.NoError(t, err)
 	err = otpService.Remove2FA(ctx, userId, passcode)
 	assert.Error(t, err)
