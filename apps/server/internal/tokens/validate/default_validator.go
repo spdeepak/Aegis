@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+
 	"github.com/spdeepak/aegis/server/api"
 	httperror "github.com/spdeepak/aegis/server/internal/error"
 	"github.com/spdeepak/aegis/server/internal/tokens"

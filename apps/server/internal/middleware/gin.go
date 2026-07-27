@@ -13,9 +13,9 @@ import (
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/gin-gonic/gin"
 	ginmiddleware "github.com/oapi-codegen/gin-middleware"
-	pkt "github.com/spdeepak/aegis/server/pkg/time"
 
 	httperror "github.com/spdeepak/aegis/server/internal/error"
+	pkt "github.com/spdeepak/aegis/server/pkg/time"
 )
 
 var IgnorePaths = []string{

@@ -7,8 +7,9 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/spdeepak/aegis/server/pkg/time"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/spdeepak/aegis/server/pkg/time"
 )
 
 func TestStorage_saveDefaultSecret_OK_DefaultSecretExists(t *testing.T) {

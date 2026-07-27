@@ -1,12 +1,12 @@
 package time
 
 import (
-	"fmt"
+	"strings"
 	"testing"
-	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTime(t *testing.T) {
-	fmt.Println(Now())
-	fmt.Println(time.Now())
+	assert.True(t, strings.HasSuffix(Now().String(), "UTC"))
 }

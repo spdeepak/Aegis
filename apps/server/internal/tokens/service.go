@@ -12,10 +12,10 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	pkgtime "github.com/spdeepak/aegis/server/pkg/time"
 
 	"github.com/spdeepak/aegis/server/api"
 	"github.com/spdeepak/aegis/server/internal/error"
+	pkgtime "github.com/spdeepak/aegis/server/pkg/time"
 )
 
 const (
