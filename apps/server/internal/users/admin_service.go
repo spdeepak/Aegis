@@ -2,6 +2,7 @@ package users
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -69,7 +70,8 @@ func (a *adminService) GetListOfUsers(ctx context.Context, params api.GetListOfU
 	}
 	details, err := a.storage.SearchAndGetUserDetails(ctx, repoParams)
 	if err != nil {
-		return nil, err
+		slog.ErrorContext(ctx, "failed to search user details", "error", err)
+		return nil, httperror.New(httperror.SearchUsersFailed)
 	}
 	userDetails := make([]api.UserDetails, len(details))
 	for index, detail := range details {
