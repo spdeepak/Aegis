@@ -10,6 +10,13 @@ import (
 	httperror "github.com/spdeepak/aegis/server/internal/error"
 )
 
+type contextKey string
+
+const (
+	contextKeyUserID contextKey = "User-ID"
+	contextKeyUserIP contextKey = "user-ip"
+)
+
 type (
 	adminService struct {
 		storage Querier
@@ -88,8 +95,8 @@ func (a *adminService) GetListOfUsers(ctx context.Context, params api.GetListOfU
 func (a *adminService) LockUserById(ctx context.Context, id int64, params api.LockUserParams) error {
 	_, err := a.storage.LockUserById(ctx, LockUserByIdParams{
 		UserID:    id,
-		ActorID:   ctx.Value("User-ID").(int64),
-		IpAddress: ctx.Value("user-ip").(string),
+		ActorID:   ctx.Value(contextKeyUserID).(int64),
+		IpAddress: ctx.Value(contextKeyUserIP).(string),
 		UserAgent: params.UserAgent,
 	})
 	if err != nil && err.Error() == "no rows in result set" {
@@ -103,8 +110,8 @@ func (a *adminService) LockUserById(ctx context.Context, id int64, params api.Lo
 func (a *adminService) UnlockUserById(ctx context.Context, id int64, params api.UnlockUserParams) error {
 	_, err := a.storage.UnlockUserById(ctx, UnlockUserByIdParams{
 		UserID:    id,
-		ActorID:   ctx.Value("User-ID").(int64),
-		IpAddress: ctx.Value("user-ip").(string),
+		ActorID:   ctx.Value(contextKeyUserID).(int64),
+		IpAddress: ctx.Value(contextKeyUserIP).(string),
 		UserAgent: params.UserAgent,
 	})
 	if err != nil && err.Error() == "no rows in result set" {
@@ -118,8 +125,8 @@ func (a *adminService) UnlockUserById(ctx context.Context, id int64, params api.
 func (a *adminService) DisableUserById(ctx context.Context, id int64, params api.DisableUserParams) error {
 	_, err := a.storage.DisableUserById(ctx, DisableUserByIdParams{
 		UserID:    id,
-		ActorID:   ctx.Value("User-ID").(int64),
-		IpAddress: ctx.Value("user-ip").(string),
+		ActorID:   ctx.Value(contextKeyUserID).(int64),
+		IpAddress: ctx.Value(contextKeyUserIP).(string),
 		UserAgent: params.UserAgent,
 	})
 	if err != nil && err.Error() == "no rows in result set" {
@@ -133,8 +140,8 @@ func (a *adminService) DisableUserById(ctx context.Context, id int64, params api
 func (a *adminService) EnableUserById(ctx context.Context, id int64, params api.EnableUserParams) error {
 	_, err := a.storage.EnableUserById(ctx, EnableUserByIdParams{
 		UserID:    id,
-		ActorID:   ctx.Value("User-ID").(int64),
-		IpAddress: ctx.Value("user-ip").(string),
+		ActorID:   ctx.Value(contextKeyUserID).(int64),
+		IpAddress: ctx.Value(contextKeyUserIP).(string),
 		UserAgent: params.UserAgent,
 	})
 	if err != nil && err.Error() == "no rows in result set" {
