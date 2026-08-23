@@ -72,6 +72,7 @@ func TestMain(m *testing.M) {
 	swagger, _ := api.GetSwagger()
 	swagger.Servers = nil
 	router = gin.New()
+	router.ContextWithFallback = true
 	router.Use(
 		middleware.RequestValidator(swagger),
 		middleware.JWTAuthMiddleware([]byte("JWT_$€Cr€t"), nil, "test-issuer"),
