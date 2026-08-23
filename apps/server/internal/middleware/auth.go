@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"slices"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/spdeepak/aegis/server/internal/error"
 	"github.com/spdeepak/aegis/server/internal/tokens"
+	"github.com/spdeepak/aegis/server/internal/users"
 	"github.com/spdeepak/aegis/server/pkg/util"
 )
 
@@ -139,9 +141,11 @@ func JWTAuthMiddleware(secret []byte, skipPaths []string, issuer string) gin.Han
 		switch claims.Type {
 		case "2FA":
 			c.Set("User-ID", userId)
+			c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), users.CtxKeyUserID, userId))
 		case "Bearer", "Refresh":
 			c.Set("User-ID", userId)
 			c.Set("User-Email", claims.Email)
+			c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), users.CtxKeyUserID, userId))
 		default:
 			authFailures.WithLabelValues("RequiredClaimsMissing").Inc()
 			c.AbortWithStatusJSON(http.StatusUnauthorized, httperror.HttpError{
@@ -154,6 +158,7 @@ func JWTAuthMiddleware(secret []byte, skipPaths []string, issuer string) gin.Han
 
 		c.Set("user-ip", c.ClientIP())
 		c.Set("user", token.Claims)
+		c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), users.CtxKeyUserIP, c.ClientIP()))
 		authSuccess.Inc()
 		c.Next()
 	}

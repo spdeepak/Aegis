@@ -12,7 +12,7 @@ import (
 
 	"github.com/spdeepak/aegis/server/api"
 	"github.com/spdeepak/aegis/server/internal/error"
-	"github.com/spdeepak/aegis/server/pkg/time"
+	pkgtime "github.com/spdeepak/aegis/server/pkg/time"
 )
 
 type service struct {
@@ -64,7 +64,7 @@ func (s *service) Verify2FALogin(ctx context.Context, params api.Login2FAParams,
 		slog.ErrorContext(ctx, fmt.Sprintf("Failed to get 2FA details for user: %d", userId), "error", err)
 		return false, httperror.New(httperror.InvalidTwoFA)
 	}
-	return totp.ValidateCustom(passcode, twoFADetails.Secret, time.Now(), totp.ValidateOpts{
+	return totp.ValidateCustom(passcode, twoFADetails.Secret, pkgtime.Now(), totp.ValidateOpts{
 		Period:    30, // typical for authenticator apps
 		Skew:      1,  // allow ±1 interval (30s) clock drift
 		Digits:    otp.DigitsSix,
@@ -78,7 +78,7 @@ func (s *service) Remove2FA(ctx context.Context, userId int64, passcode string) 
 		slog.ErrorContext(ctx, fmt.Sprintf("Failed to get 2FA details for user: %d", userId), "error", err)
 		return httperror.New(httperror.InvalidTwoFA)
 	}
-	is2FAValid, err := totp.ValidateCustom(passcode, twoFADetails.Secret, time.Now(), totp.ValidateOpts{
+	is2FAValid, err := totp.ValidateCustom(passcode, twoFADetails.Secret, pkgtime.Now(), totp.ValidateOpts{
 		Period:    30, // typical for authenticator apps
 		Skew:      1,  // allow ±1 interval (30s) clock drift
 		Digits:    otp.DigitsSix,

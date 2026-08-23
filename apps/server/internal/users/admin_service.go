@@ -88,8 +88,8 @@ func (a *adminService) GetListOfUsers(ctx context.Context, params api.GetListOfU
 }
 
 func (a *adminService) LockUserById(ctx context.Context, id int64, params api.LockUserParams) error {
-	actorID := ctx.Value("User-ID").(int64)
-	ipAddress := ctx.Value("user-ip").(string)
+	actorID := ctx.Value(CtxKeyUserID).(int64)
+	ipAddress := ctx.Value(CtxKeyUserIP).(string)
 	_, err := a.storage.LockUserById(ctx, LockUserByIdParams{
 		UserID:    id,
 		ActorID:   actorID,
@@ -105,8 +105,8 @@ func (a *adminService) LockUserById(ctx context.Context, id int64, params api.Lo
 }
 
 func (a *adminService) UnlockUserById(ctx context.Context, id int64, params api.UnlockUserParams) error {
-	actorID := ctx.Value("User-ID").(int64)
-	ipAddress := ctx.Value("user-ip").(string)
+	actorID := ctx.Value(CtxKeyUserID).(int64)
+	ipAddress := ctx.Value(CtxKeyUserIP).(string)
 	_, err := a.storage.UnlockUserById(ctx, UnlockUserByIdParams{
 		UserID:    id,
 		ActorID:   actorID,
@@ -122,8 +122,8 @@ func (a *adminService) UnlockUserById(ctx context.Context, id int64, params api.
 }
 
 func (a *adminService) DisableUserById(ctx context.Context, id int64, params api.DisableUserParams) error {
-	actorID := ctx.Value("User-ID").(int64)
-	ipAddress := ctx.Value("user-ip").(string)
+	actorID := ctx.Value(CtxKeyUserID).(int64)
+	ipAddress := ctx.Value(CtxKeyUserIP).(string)
 	_, err := a.storage.DisableUserById(ctx, DisableUserByIdParams{
 		UserID:    id,
 		ActorID:   actorID,
@@ -139,8 +139,8 @@ func (a *adminService) DisableUserById(ctx context.Context, id int64, params api
 }
 
 func (a *adminService) EnableUserById(ctx context.Context, id int64, params api.EnableUserParams) error {
-	actorID := ctx.Value("User-ID").(int64)
-	ipAddress := ctx.Value("user-ip").(string)
+	actorID := ctx.Value(CtxKeyUserID).(int64)
+	ipAddress := ctx.Value(CtxKeyUserIP).(string)
 	_, err := a.storage.EnableUserById(ctx, EnableUserByIdParams{
 		UserID:    id,
 		ActorID:   actorID,
