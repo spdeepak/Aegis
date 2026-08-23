@@ -1,0 +1,20 @@
+linters:
+  enable:
+    - forbidigo
+
+linters-settings:
+  forbidigo:
+    analyze-types: true
+    exclude-godoc-examples: true
+    forbid:
+      - p: ^time\.Now$
+        pkg: ^time$
+        msg: use pkg/time.Now() instead of time.Now()
+issues:
+  exclude-rules:
+    - path: _test\.go$
+      linters:
+        - forbidigo
+    - path: pkg/time/
+      linters:
+        - forbidigo

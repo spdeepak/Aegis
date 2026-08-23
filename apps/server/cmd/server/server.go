@@ -135,7 +135,6 @@ func (s *Server) RevokeRefreshToken(ctx *gin.Context, params api.RevokeRefreshTo
 		return
 	}
 	ctx.Status(http.StatusOK)
-	return
 }
 
 func (s *Server) RevokeAllTokens(ctx *gin.Context, params api.RevokeAllTokensParams) {
@@ -216,7 +215,6 @@ func (s *Server) Remove2FA(ctx *gin.Context, params api.Remove2FAParams) {
 		return
 	}
 	ctx.Status(http.StatusOK)
-	return
 }
 
 func (s *Server) CreateNewRole(ctx *gin.Context, params api.CreateNewRoleParams) {
@@ -236,7 +234,6 @@ func (s *Server) CreateNewRole(ctx *gin.Context, params api.CreateNewRoleParams)
 		return
 	}
 	ctx.JSON(http.StatusCreated, createNewRole)
-	return
 }
 
 func (s *Server) GetRoleById(ctx *gin.Context, id api.Id, params api.GetRoleByIdParams) {
@@ -246,7 +243,6 @@ func (s *Server) GetRoleById(ctx *gin.Context, id api.Id, params api.GetRoleById
 		return
 	}
 	ctx.JSON(http.StatusOK, roleById)
-	return
 }
 
 func (s *Server) ListAllRoles(ctx *gin.Context, params api.ListAllRolesParams) {
@@ -256,7 +252,6 @@ func (s *Server) ListAllRoles(ctx *gin.Context, params api.ListAllRolesParams) {
 		return
 	}
 	ctx.JSON(http.StatusOK, listRoles)
-	return
 }
 
 func (s *Server) UpdateRoleById(ctx *gin.Context, id api.Id, params api.UpdateRoleByIdParams) {
@@ -276,7 +271,6 @@ func (s *Server) UpdateRoleById(ctx *gin.Context, id api.Id, params api.UpdateRo
 		return
 	}
 	ctx.JSON(http.StatusOK, updatedRole)
-	return
 }
 
 func (s *Server) DeleteRoleById(ctx *gin.Context, id api.Id, params api.DeleteRoleByIdParams) {
@@ -286,7 +280,6 @@ func (s *Server) DeleteRoleById(ctx *gin.Context, id api.Id, params api.DeleteRo
 		return
 	}
 	ctx.Status(http.StatusOK)
-	return
 }
 
 func (s *Server) CreateNewPermission(ctx *gin.Context, params api.CreateNewPermissionParams) {
@@ -306,7 +299,6 @@ func (s *Server) CreateNewPermission(ctx *gin.Context, params api.CreateNewPermi
 		return
 	}
 	ctx.JSON(http.StatusCreated, createNewPermission)
-	return
 }
 
 func (s *Server) GetPermissionById(ctx *gin.Context, id api.Id, params api.GetPermissionByIdParams) {
@@ -316,7 +308,6 @@ func (s *Server) GetPermissionById(ctx *gin.Context, id api.Id, params api.GetPe
 		return
 	}
 	ctx.JSON(http.StatusOK, permissionById)
-	return
 }
 
 func (s *Server) ListAllPermissions(ctx *gin.Context, params api.ListAllPermissionsParams) {
@@ -326,7 +317,6 @@ func (s *Server) ListAllPermissions(ctx *gin.Context, params api.ListAllPermissi
 		return
 	}
 	ctx.JSON(http.StatusOK, permissionList)
-	return
 }
 
 func (s *Server) UpdatePermissionById(ctx *gin.Context, id api.Id, params api.UpdatePermissionByIdParams) {
@@ -346,7 +336,6 @@ func (s *Server) UpdatePermissionById(ctx *gin.Context, id api.Id, params api.Up
 		return
 	}
 	ctx.JSON(http.StatusOK, updatedPermission)
-	return
 }
 
 func (s *Server) DeletePermissionById(ctx *gin.Context, id api.Id, params api.DeletePermissionByIdParams) {
@@ -356,7 +345,6 @@ func (s *Server) DeletePermissionById(ctx *gin.Context, id api.Id, params api.De
 		return
 	}
 	ctx.Status(http.StatusOK)
-	return
 }
 
 func (s *Server) AssignPermissionToRole(ctx *gin.Context, id api.Id, params api.AssignPermissionToRoleParams) {
@@ -375,7 +363,6 @@ func (s *Server) AssignPermissionToRole(ctx *gin.Context, id api.Id, params api.
 		return
 	}
 	ctx.Status(http.StatusOK)
-	return
 }
 
 func (s *Server) UnassignPermissionFromRole(ctx *gin.Context, roleId api.RoleId, permissionId api.PermissionId) {
@@ -384,7 +371,6 @@ func (s *Server) UnassignPermissionFromRole(ctx *gin.Context, roleId api.RoleId,
 		return
 	}
 	ctx.Status(http.StatusOK)
-	return
 }
 
 func (s *Server) RolesAndPermissions(ctx *gin.Context, params api.RolesAndPermissionsParams) {
@@ -423,7 +409,6 @@ func (s *Server) AssignRolesToUser(ctx *gin.Context, id api.Id, params api.Assig
 		return
 	}
 	ctx.Status(http.StatusOK)
-	return
 }
 
 func (s *Server) RemoveRolesForUser(ctx *gin.Context, userId api.Id, roleId api.RoleId, params api.RemoveRolesForUserParams) {
@@ -432,7 +417,6 @@ func (s *Server) RemoveRolesForUser(ctx *gin.Context, userId api.Id, roleId api.
 		return
 	}
 	ctx.Status(http.StatusOK)
-	return
 }
 
 func (s *Server) GetListOfUsers(ctx *gin.Context, params api.GetListOfUsersParams) {
@@ -442,7 +426,6 @@ func (s *Server) GetListOfUsers(ctx *gin.Context, params api.GetListOfUsersParam
 		return
 	}
 	ctx.JSON(http.StatusOK, listOfUsers)
-	return
 }
 
 func (s *Server) LockUser(ctx *gin.Context, id api.Id, params api.LockUserParams) {
@@ -451,7 +434,6 @@ func (s *Server) LockUser(ctx *gin.Context, id api.Id, params api.LockUserParams
 		return
 	}
 	ctx.Status(http.StatusOK)
-	return
 }
 
 func (s *Server) UnlockUser(ctx *gin.Context, id api.Id, params api.UnlockUserParams) {
@@ -460,7 +442,6 @@ func (s *Server) UnlockUser(ctx *gin.Context, id api.Id, params api.UnlockUserPa
 		return
 	}
 	ctx.Status(http.StatusOK)
-	return
 }
 
 func (s *Server) DisableUser(ctx *gin.Context, id api.Id, params api.DisableUserParams) {
@@ -469,7 +450,6 @@ func (s *Server) DisableUser(ctx *gin.Context, id api.Id, params api.DisableUser
 		return
 	}
 	ctx.Status(http.StatusOK)
-	return
 }
 
 func (s *Server) EnableUser(ctx *gin.Context, id api.Id, params api.EnableUserParams) {
@@ -478,5 +458,4 @@ func (s *Server) EnableUser(ctx *gin.Context, id api.Id, params api.EnableUserPa
 		return
 	}
 	ctx.Status(http.StatusOK)
-	return
 }

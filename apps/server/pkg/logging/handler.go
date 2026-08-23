@@ -11,10 +11,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type contextKey string
+
 const (
 	CorrelationIdHeader = "Correlation-Id"
 	AgentNameHeader     = "User-Agent"
 	UserEmailHeader     = "User-Email"
+)
+
+const (
+	ctxKeyCorrelationId contextKey = CorrelationIdHeader
+	ctxKeyAgentName     contextKey = AgentNameHeader
+	ctxKeyUserEmail     contextKey = UserEmailHeader
 )
 
 type handler struct {
@@ -40,13 +48,13 @@ func (h *handler) Handle(ctx context.Context, r slog.Record) error {
 		return true
 	})
 
-	if correlationId := ctx.Value(CorrelationIdHeader); correlationId != nil {
+	if correlationId := ctx.Value(ctxKeyCorrelationId); correlationId != nil {
 		extra[CorrelationIdHeader] = correlationId.(string)
 	}
-	if agentName := ctx.Value(AgentNameHeader); agentName != nil {
+	if agentName := ctx.Value(ctxKeyAgentName); agentName != nil {
 		extra[AgentNameHeader] = agentName.(string)
 	}
-	if userEmailHeader := ctx.Value(UserEmailHeader); userEmailHeader != nil {
+	if userEmailHeader := ctx.Value(ctxKeyUserEmail); userEmailHeader != nil {
 		extra[UserEmailHeader] = userEmailHeader.(string)
 	}
 	if ginCtx, ok := ctx.(*gin.Context); ok {

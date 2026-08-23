@@ -12,6 +12,7 @@ import (
 
 	"github.com/spdeepak/aegis/server/api"
 	"github.com/spdeepak/aegis/server/internal/error"
+	pkgTime "github.com/spdeepak/aegis/server/pkg/time"
 )
 
 func TestService_GenerateTokenPair(t *testing.T) {
@@ -350,8 +351,8 @@ func TestService_RefreshAndInvalidateToken_OK(t *testing.T) {
 		newRefreshToken = params.NewRefreshToken
 		return len(params.NewToken) > 0 &&
 			len(params.NewRefreshToken) > 0 &&
-			time.Now().Before(params.TokenExpiresAt) &&
-			time.Now().Before(params.RefreshExpiresAt) &&
+			pkgTime.Now().Before(params.TokenExpiresAt) &&
+			pkgTime.Now().Before(params.RefreshExpiresAt) &&
 			len(params.IpAddress) > 1 &&
 			params.UserAgent == "Api Testing" &&
 			params.DeviceName == "" &&
@@ -405,8 +406,8 @@ func TestService_RefreshAndInvalidateToken_NOK_InvalidationFailed(t *testing.T) 
 		newRefreshToken = params.NewRefreshToken
 		return len(params.NewToken) > 0 &&
 			len(params.NewRefreshToken) > 0 &&
-			time.Now().Before(params.TokenExpiresAt) &&
-			time.Now().Before(params.RefreshExpiresAt) &&
+			pkgTime.Now().Before(params.TokenExpiresAt) &&
+			pkgTime.Now().Before(params.RefreshExpiresAt) &&
 			len(params.IpAddress) > 1 &&
 			params.UserAgent == "Api Testing" &&
 			params.DeviceName == "" &&
@@ -433,8 +434,8 @@ func TestService_ListActiveSessions_OK(t *testing.T) {
 		{
 			CreatedBy:        "api-test",
 			IpAddress:        "192.168.1.100",
-			IssuedAt:         time.Now().Add(-1 * time.Hour),
-			RefreshExpiresAt: time.Now().Add(6 * 24 * time.Hour),
+			IssuedAt:         pkgTime.Now().Add(-1 * time.Hour),
+			RefreshExpiresAt: pkgTime.Now().Add(6 * 24 * time.Hour),
 			UserAgent:        "user-agent",
 		},
 	}

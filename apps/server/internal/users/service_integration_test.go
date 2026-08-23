@@ -23,6 +23,7 @@ import (
 	"github.com/spdeepak/aegis/server/internal/roles"
 	"github.com/spdeepak/aegis/server/internal/tokens"
 	"github.com/spdeepak/aegis/server/internal/twoFA"
+	pkgTime "github.com/spdeepak/aegis/server/pkg/time"
 )
 
 var dbConfig = config.PostgresConfig{
@@ -334,7 +335,7 @@ func login2FAOK(t *testing.T) {
 	userByEmail, err := userStorage.GetEntireUserByEmail(context.Background(), "first.last@example.com")
 	assert.NoError(t, err)
 
-	passcode, err := totp.GenerateCode(res.Secret, time.Now().Add(-20*time.Second))
+	passcode, err := totp.GenerateCode(res.Secret, pkgTime.Now().Add(-20*time.Second))
 	assert.NoError(t, err)
 
 	login2FA, err := userService.Login2FA(ctx, api.Login2FAParams{}, userByEmail.UserID, passcode)
@@ -380,7 +381,7 @@ func login2faNOKOld2FACode(t *testing.T) {
 	userByEmail, err := userStorage.GetEntireUserByEmail(context.Background(), "first.last@example.com")
 	assert.NoError(t, err)
 
-	passcode, err := totp.GenerateCode(res.Secret, time.Now().Add(-60*time.Second))
+	passcode, err := totp.GenerateCode(res.Secret, pkgTime.Now().Add(-60*time.Second))
 	assert.NoError(t, err)
 
 	login2FA, err := userService.Login2FA(ctx, api.Login2FAParams{}, userByEmail.UserID, passcode)
@@ -775,7 +776,7 @@ func changePassword2faOk(t *testing.T, res api.SignUpWith2FAResponse) {
 	require.NotEmpty(t, userByEmail)
 
 	// Generate a valid 2FA code
-	passcode, err := totp.GenerateCode(res.Secret, time.Now())
+	passcode, err := totp.GenerateCode(res.Secret, pkgTime.Now())
 	require.NoError(t, err)
 
 	// Change password with valid 2FA code
@@ -806,7 +807,7 @@ func changePassword2faOk(t *testing.T, res api.SignUpWith2FAResponse) {
 	assert.NotEmpty(t, loginRequires2FA.TempToken)
 
 	// Now verify with 2FA code
-	passcode2, err := totp.GenerateCode(res.Secret, time.Now())
+	passcode2, err := totp.GenerateCode(res.Secret, pkgTime.Now())
 	require.NoError(t, err)
 	login2FARes, err := userService.Login2FA(ctx, api.Login2FAParams{}, userByEmail.UserID, passcode2)
 	assert.NoError(t, err)
@@ -900,7 +901,7 @@ func changePassword2faWrongOldPassword(t *testing.T, res api.SignUpWith2FARespon
 	require.NotEmpty(t, userByEmail)
 
 	// Generate a valid 2FA code
-	passcode, err := totp.GenerateCode(res.Secret, time.Now())
+	passcode, err := totp.GenerateCode(res.Secret, pkgTime.Now())
 	require.NoError(t, err)
 
 	// Try to change password with wrong old password but valid 2FA code

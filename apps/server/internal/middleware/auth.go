@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"slices"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/spdeepak/aegis/server/internal/error"
 	"github.com/spdeepak/aegis/server/internal/tokens"
+	"github.com/spdeepak/aegis/server/internal/users"
 	"github.com/spdeepak/aegis/server/pkg/util"
 )
 
@@ -62,7 +64,7 @@ func JWTAuthMiddleware(secret []byte, skipPaths []string, issuer string) gin.Han
 		token, err := jwt.ParseWithClaims(
 			tokenStr,
 			&tokens.TokenClaims{},
-			func(token *jwt.Token) (interface{}, error) {
+			func(token *jwt.Token) (any, error) {
 				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 					return nil, jwt.ErrTokenUnverifiable
 				}
@@ -139,9 +141,11 @@ func JWTAuthMiddleware(secret []byte, skipPaths []string, issuer string) gin.Han
 		switch claims.Type {
 		case "2FA":
 			c.Set("User-ID", userId)
+			c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), users.CtxKeyUserID, userId))
 		case "Bearer", "Refresh":
 			c.Set("User-ID", userId)
 			c.Set("User-Email", claims.Email)
+			c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), users.CtxKeyUserID, userId))
 		default:
 			authFailures.WithLabelValues("RequiredClaimsMissing").Inc()
 			c.AbortWithStatusJSON(http.StatusUnauthorized, httperror.HttpError{
@@ -154,6 +158,7 @@ func JWTAuthMiddleware(secret []byte, skipPaths []string, issuer string) gin.Han
 
 		c.Set("user-ip", c.ClientIP())
 		c.Set("user", token.Claims)
+		c.Request = c.Request.WithContext(context.WithValue(c.Request.Context(), users.CtxKeyUserIP, c.ClientIP()))
 		authSuccess.Inc()
 		c.Next()
 	}
@@ -173,8 +178,8 @@ type (
 
 func (a *authPolicy) evalAnyOf(userRoles []string, userPerms []string, isSelf bool) bool {
 	// If nothing is specified, allow
-	if (a.AnyOf.Roles == nil || len(a.AnyOf.Roles) == 0) &&
-		(a.AnyOf.Permissions == nil || len(a.AnyOf.Permissions) == 0) &&
+	if len(a.AnyOf.Roles) == 0 &&
+		len(a.AnyOf.Permissions) == 0 &&
 		!a.Self {
 		return true
 	}
@@ -205,14 +210,14 @@ func (a *authPolicy) evalAllOf(userRoles []string, userPerms []string, isSelf bo
 	}
 
 	// Check all required roles
-	if a.AllOf.Roles != nil && len(a.AllOf.Roles) > 0 {
+	if len(a.AllOf.Roles) > 0 {
 		if !util.HasAll(a.AllOf.Roles, userRoles) {
 			return false
 		}
 	}
 
 	// Check all required permissions
-	if a.AllOf.Permissions != nil && len(a.AllOf.Permissions) > 0 {
+	if len(a.AllOf.Permissions) > 0 {
 		if !util.HasAll(a.AllOf.Permissions, userPerms) {
 			return false
 		}

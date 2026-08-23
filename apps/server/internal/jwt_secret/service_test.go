@@ -6,12 +6,12 @@ import (
 	"os"
 	"os/exec"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/spdeepak/aegis/server/internal/config"
+	"github.com/spdeepak/aegis/server/pkg/time"
 )
 
 func TestService_GetOrCreateSecret_OK_SecretInDB(t *testing.T) {

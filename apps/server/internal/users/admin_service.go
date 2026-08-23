@@ -2,6 +2,7 @@ package users
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/jackc/pgx/v5/pgtype"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -69,7 +70,8 @@ func (a *adminService) GetListOfUsers(ctx context.Context, params api.GetListOfU
 	}
 	details, err := a.storage.SearchAndGetUserDetails(ctx, repoParams)
 	if err != nil {
-		return nil, err
+		slog.ErrorContext(ctx, "failed to search user details", "error", err)
+		return nil, httperror.New(httperror.SearchUsersFailed)
 	}
 	userDetails := make([]api.UserDetails, len(details))
 	for index, detail := range details {
@@ -86,10 +88,12 @@ func (a *adminService) GetListOfUsers(ctx context.Context, params api.GetListOfU
 }
 
 func (a *adminService) LockUserById(ctx context.Context, id int64, params api.LockUserParams) error {
+	actorID := ctx.Value(CtxKeyUserID).(int64)
+	ipAddress := ctx.Value(CtxKeyUserIP).(string)
 	_, err := a.storage.LockUserById(ctx, LockUserByIdParams{
 		UserID:    id,
-		ActorID:   ctx.Value("User-ID").(int64),
-		IpAddress: ctx.Value("user-ip").(string),
+		ActorID:   actorID,
+		IpAddress: ipAddress,
 		UserAgent: params.UserAgent,
 	})
 	if err != nil && err.Error() == "no rows in result set" {
@@ -101,10 +105,12 @@ func (a *adminService) LockUserById(ctx context.Context, id int64, params api.Lo
 }
 
 func (a *adminService) UnlockUserById(ctx context.Context, id int64, params api.UnlockUserParams) error {
+	actorID := ctx.Value(CtxKeyUserID).(int64)
+	ipAddress := ctx.Value(CtxKeyUserIP).(string)
 	_, err := a.storage.UnlockUserById(ctx, UnlockUserByIdParams{
 		UserID:    id,
-		ActorID:   ctx.Value("User-ID").(int64),
-		IpAddress: ctx.Value("user-ip").(string),
+		ActorID:   actorID,
+		IpAddress: ipAddress,
 		UserAgent: params.UserAgent,
 	})
 	if err != nil && err.Error() == "no rows in result set" {
@@ -116,10 +122,12 @@ func (a *adminService) UnlockUserById(ctx context.Context, id int64, params api.
 }
 
 func (a *adminService) DisableUserById(ctx context.Context, id int64, params api.DisableUserParams) error {
+	actorID := ctx.Value(CtxKeyUserID).(int64)
+	ipAddress := ctx.Value(CtxKeyUserIP).(string)
 	_, err := a.storage.DisableUserById(ctx, DisableUserByIdParams{
 		UserID:    id,
-		ActorID:   ctx.Value("User-ID").(int64),
-		IpAddress: ctx.Value("user-ip").(string),
+		ActorID:   actorID,
+		IpAddress: ipAddress,
 		UserAgent: params.UserAgent,
 	})
 	if err != nil && err.Error() == "no rows in result set" {
@@ -131,10 +139,12 @@ func (a *adminService) DisableUserById(ctx context.Context, id int64, params api
 }
 
 func (a *adminService) EnableUserById(ctx context.Context, id int64, params api.EnableUserParams) error {
+	actorID := ctx.Value(CtxKeyUserID).(int64)
+	ipAddress := ctx.Value(CtxKeyUserIP).(string)
 	_, err := a.storage.EnableUserById(ctx, EnableUserByIdParams{
 		UserID:    id,
-		ActorID:   ctx.Value("User-ID").(int64),
-		IpAddress: ctx.Value("user-ip").(string),
+		ActorID:   actorID,
+		IpAddress: ipAddress,
 		UserAgent: params.UserAgent,
 	})
 	if err != nil && err.Error() == "no rows in result set" {

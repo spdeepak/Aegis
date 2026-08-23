@@ -242,9 +242,7 @@ func (s *service) GetUserRolesAndPermissions(ctx *gin.Context, id api.Id, params
 
 func (s *service) AssignRolesToUser(ctx *gin.Context, userId api.Id, params api.AssignRolesToUserParams, assignRoleToUser api.AssignRoleToUser, email string) error {
 	rolesIds := make([]int64, len(assignRoleToUser.Roles))
-	for index, id := range assignRoleToUser.Roles {
-		rolesIds[index] = id
-	}
+	copy(rolesIds, assignRoleToUser.Roles)
 	assignRolesToUser := AssignRolesToUserParams{
 		UserID:    userId,
 		RoleID:    rolesIds,

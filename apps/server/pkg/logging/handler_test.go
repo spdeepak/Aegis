@@ -12,6 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	pkgTime "github.com/spdeepak/aegis/server/pkg/time"
 )
 
 type capturedRecord struct {
@@ -87,16 +89,16 @@ func TestHandler_Handle(t *testing.T) {
 		{
 			name: "context with correlation id",
 			setupContext: func() context.Context {
-				return context.WithValue(context.Background(), CorrelationIdHeader, "test-correlation-123")
+				return context.WithValue(context.Background(), ctxKeyCorrelationId, "test-correlation-123")
 			},
 			expectedExtras: map[string]interface{}{
-				CorrelationIdHeader: "test-correlation-123",
+				"Correlation-Id": "test-correlation-123",
 			},
 		},
 		{
 			name: "context with agent name",
 			setupContext: func() context.Context {
-				return context.WithValue(context.Background(), AgentNameHeader, "test-agent")
+				return context.WithValue(context.Background(), ctxKeyAgentName, "test-agent")
 			},
 			expectedExtras: map[string]interface{}{
 				AgentNameHeader: "test-agent",
@@ -105,7 +107,7 @@ func TestHandler_Handle(t *testing.T) {
 		{
 			name: "context with user email",
 			setupContext: func() context.Context {
-				return context.WithValue(context.Background(), UserEmailHeader, "user@example.com")
+				return context.WithValue(context.Background(), ctxKeyUserEmail, "user@example.com")
 			},
 			expectedExtras: map[string]interface{}{
 				UserEmailHeader: "user@example.com",
@@ -114,15 +116,15 @@ func TestHandler_Handle(t *testing.T) {
 		{
 			name: "context with all headers",
 			setupContext: func() context.Context {
-				ctx := context.WithValue(context.Background(), CorrelationIdHeader, "corr-456")
-				ctx = context.WithValue(ctx, AgentNameHeader, "my-agent")
-				ctx = context.WithValue(ctx, UserEmailHeader, "test@test.com")
+				ctx := context.WithValue(context.Background(), ctxKeyCorrelationId, "corr-456")
+				ctx = context.WithValue(ctx, ctxKeyAgentName, "my-agent")
+				ctx = context.WithValue(ctx, ctxKeyUserEmail, "test@test.com")
 				return ctx
 			},
 			expectedExtras: map[string]interface{}{
-				CorrelationIdHeader: "corr-456",
-				AgentNameHeader:     "my-agent",
-				UserEmailHeader:     "test@test.com",
+				"Correlation-Id": "corr-456",
+				AgentNameHeader:  "my-agent",
+				UserEmailHeader:  "test@test.com",
 			},
 		},
 	}
@@ -136,7 +138,7 @@ func TestHandler_Handle(t *testing.T) {
 			h := NewHandler(mock)
 			ctx := tt.setupContext()
 
-			record := slog.NewRecord(time.Now(), slog.LevelInfo, "test message", 0)
+			record := slog.NewRecord(pkgTime.Now(), slog.LevelInfo, "test message", 0)
 			err := h.Handle(ctx, record)
 
 			require.NoError(t, err)
@@ -212,7 +214,7 @@ func TestHandler_Handle_WithGinContext(t *testing.T) {
 				ginCtx.Request.Header.Set(k, v)
 			}
 
-			record := slog.NewRecord(time.Now(), slog.LevelInfo, "test message", 0)
+			record := slog.NewRecord(pkgTime.Now(), slog.LevelInfo, "test message", 0)
 			err := h.Handle(ginCtx, record)
 
 			require.NoError(t, err)
@@ -233,7 +235,7 @@ func TestHandler_Handle_WithRecordAttributes(t *testing.T) {
 	mock := &mockHandler{}
 	h := NewHandler(mock)
 
-	record := slog.NewRecord(time.Now(), slog.LevelInfo, "test message", 0)
+	record := slog.NewRecord(pkgTime.Now(), slog.LevelInfo, "test message", 0)
 	record.AddAttrs(
 		slog.String("key1", "value1"),
 		slog.Int("key2", 42),
@@ -260,10 +262,10 @@ func TestHandler_Handle_ContextOverridesRecordAttrs(t *testing.T) {
 	mock := &mockHandler{}
 	h := NewHandler(mock)
 
-	ctx := context.WithValue(context.Background(), CorrelationIdHeader, "context-correlation")
+	ctx := context.WithValue(context.Background(), ctxKeyCorrelationId, "context-correlation")
 
-	record := slog.NewRecord(time.Now(), slog.LevelInfo, "test message", 0)
-	record.AddAttrs(slog.String(CorrelationIdHeader, "record-correlation"))
+	record := slog.NewRecord(pkgTime.Now(), slog.LevelInfo, "test message", 0)
+	record.AddAttrs(slog.String("Correlation-Id", "record-correlation"))
 
 	err := h.Handle(ctx, record)
 
@@ -274,7 +276,7 @@ func TestHandler_Handle_ContextOverridesRecordAttrs(t *testing.T) {
 	var extra map[string]interface{}
 	require.NoError(t, json.Unmarshal([]byte(extraStr), &extra))
 
-	assert.Equal(t, "context-correlation", extra[CorrelationIdHeader])
+	assert.Equal(t, "context-correlation", extra["Correlation-Id"])
 }
 
 func TestGetLogLevelFromEnv(t *testing.T) {

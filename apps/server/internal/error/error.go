@@ -46,6 +46,7 @@ const (
 	UserNotFound             = "JWT0026"
 	UserOperationFailed      = "JWT0027"
 	TwoFARequired            = "JWT0028"
+	SearchUsersFailed        = "JWT0029"
 )
 
 var httpErrors = map[string]HttpError{
@@ -164,6 +165,10 @@ var httpErrors = map[string]HttpError{
 	TwoFARequired: {
 		StatusCode:  http.StatusForbidden,
 		Description: "2FA code is required",
+	},
+	SearchUsersFailed: {
+		StatusCode:  http.StatusInternalServerError,
+		Description: "Failed to get list of users",
 	},
 }
 

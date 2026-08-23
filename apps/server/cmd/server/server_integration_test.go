@@ -22,13 +22,14 @@ import (
 	"github.com/spdeepak/aegis/server/internal/config"
 	"github.com/spdeepak/aegis/server/internal/db"
 	"github.com/spdeepak/aegis/server/internal/error"
-	middleware2 "github.com/spdeepak/aegis/server/internal/middleware"
+	"github.com/spdeepak/aegis/server/internal/middleware"
 	"github.com/spdeepak/aegis/server/internal/permissions"
 	"github.com/spdeepak/aegis/server/internal/roles"
 	"github.com/spdeepak/aegis/server/internal/tokens"
 	"github.com/spdeepak/aegis/server/internal/twoFA"
 	"github.com/spdeepak/aegis/server/internal/users"
 	"github.com/spdeepak/aegis/server/pkg/logging"
+	pkgTime "github.com/spdeepak/aegis/server/pkg/time"
 )
 
 var roleQuery roles.Querier
@@ -71,12 +72,13 @@ func TestMain(m *testing.M) {
 	swagger, _ := api.GetSwagger()
 	swagger.Servers = nil
 	router = gin.New()
+	router.ContextWithFallback = true
 	router.Use(
-		middleware2.RequestValidator(swagger),
-		middleware2.JWTAuthMiddleware([]byte("JWT_$€Cr€t"), nil, "test-issuer"),
+		middleware.RequestValidator(swagger),
+		middleware.JWTAuthMiddleware([]byte("JWT_$€Cr€t"), nil, "test-issuer"),
 		gin.Recovery(),
-		middleware2.ErrorMiddleware,
-		middleware2.GinLogger(),
+		middleware.ErrorMiddleware,
+		middleware.GinLogger(),
 	)
 	server := NewServer(userService, rolesService, permissionService, tokenService, twoFaService, adminService)
 	api.RegisterHandlers(router, server)
@@ -267,7 +269,7 @@ func TestServer_Login_2FA_OK(t *testing.T) {
 	res := login2FAEnabledTempToken(t)
 
 	//Login with temp_token and 2FA code to get Bearer and Refresh token
-	generateCode, err := totp.GenerateCode(signupRes.Secret, time.Now())
+	generateCode, err := totp.GenerateCode(signupRes.Secret, pkgTime.Now())
 	assert.NoError(t, err)
 	loginWithTempToken2FACode(t, generateCode, res)
 }
@@ -281,11 +283,12 @@ func TestServer_Login_2FA_NOK_Expired2FA(t *testing.T) {
 	res := login2FAEnabledTempToken(t)
 
 	//Login with temp_token and 2FA code to get Bearer and Refresh token
-	generateCode, err := totp.GenerateCode(signupRes.Secret, time.Now().Add(-100*time.Minute))
+	generateCode, err := totp.GenerateCode(signupRes.Secret, pkgTime.Now().Add(-100*time.Minute))
 	assert.NoError(t, err)
 	login2faBytes, err := json.Marshal(api.Login2FARequest{
 		TwoFACode: generateCode,
 	})
+	assert.NoError(t, err)
 	req, err := http.NewRequest(http.MethodPost, "/api/v1/auth/2fa/login", bytes.NewReader(login2faBytes))
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
@@ -312,6 +315,7 @@ func TestServer_Login_2FA_NOK_InvalidRequestBody(t *testing.T) {
 
 	//Login with temp_token and 2FA code to get Bearer and Refresh token
 	login2faBytes, err := json.Marshal(`{}`)
+	assert.NoError(t, err)
 	req, err := http.NewRequest(http.MethodPost, "/api/v1/auth/2fa/login", bytes.NewReader(login2faBytes))
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
@@ -482,12 +486,12 @@ func TestServer_Remove2FA_OK(t *testing.T) {
 	res := login2FAEnabledTempToken(t)
 
 	//Login with temp_token and 2FA code to get Bearer and Refresh token
-	generateCode, err := totp.GenerateCode(signupRes.Secret, time.Now())
+	generateCode, err := totp.GenerateCode(signupRes.Secret, pkgTime.Now())
 	assert.NoError(t, err)
 	twoFaLoginResp := loginWithTempToken2FACode(t, generateCode, res)
 
 	//Remove 2FA
-	generateCode, err = totp.GenerateCode(signupRes.Secret, time.Now())
+	generateCode, err = totp.GenerateCode(signupRes.Secret, pkgTime.Now())
 	assert.NoError(t, err)
 	twoFABytes, err := json.Marshal(api.Remove2FARequest{
 		TwoFACode: generateCode,
@@ -629,6 +633,7 @@ func TestServer_UpdateRoleById_OK(t *testing.T) {
 	updateRole, err := json.Marshal(api.UpdateRole{
 		Description: &updatedRoleDescription,
 	})
+	assert.NoError(t, err)
 	req, err := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/access-control/roles/%d", roleRes.Id), bytes.NewReader(updateRole))
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
@@ -668,6 +673,7 @@ func TestServer_UpdateRoleById_NOK_RoleNotFound(t *testing.T) {
 	updateRole, err := json.Marshal(api.UpdateRole{
 		Description: &updatedRoleDescription,
 	})
+	assert.NoError(t, err)
 	req, err := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/access-control/roles/%d", roleRes.Id), bytes.NewReader(updateRole))
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
@@ -785,6 +791,7 @@ func TestServer_UpdatePermissionById_OK(t *testing.T) {
 	updatePermission, err := json.Marshal(api.UpdatePermission{
 		Description: &updatedPermissionDescription,
 	})
+	assert.NoError(t, err)
 	req, err := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/access-control/permissions/%d", permissionRes.Id), bytes.NewReader(updatePermission))
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
@@ -824,6 +831,7 @@ func TestServer_UpdatePermissionById_NOK_PermissionNotFound(t *testing.T) {
 	updatePermission, err := json.Marshal(api.UpdatePermission{
 		Description: &updatedPermissionDescription,
 	})
+	assert.NoError(t, err)
 	req, err := http.NewRequest(http.MethodPatch, fmt.Sprintf("/api/v1/access-control/permissions/%d", permissionRes.Id), bytes.NewReader(updatePermission))
 	assert.NotNil(t, req)
 	assert.NoError(t, err)
@@ -1063,7 +1071,7 @@ func TestServer_LockUser_OK(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, user)
 	assert.False(t, user.Locked)
-	lockUser(t, err, user, loginRes)
+	lockUser(t, user, loginRes)
 	//Get User details
 	user, err = userQuery.GetEntireUserByEmail(context.Background(), "first.last@example.com")
 	assert.NoError(t, err)
@@ -1099,13 +1107,13 @@ func TestServer_UnlockUser_OK(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, user)
 	assert.False(t, user.Locked)
-	lockUser(t, err, user, loginRes)
+	lockUser(t, user, loginRes)
 	//Get User details
 	user, err = userQuery.GetEntireUserByEmail(context.Background(), "first.last@example.com")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, user)
 	assert.True(t, user.Locked)
-	unlockUser(t, err, user, loginRes)
+	unlockUser(t, user, loginRes)
 	//Get User details
 	user, err = userQuery.GetEntireUserByEmail(context.Background(), "first.last@example.com")
 	assert.NoError(t, err)
@@ -1141,7 +1149,7 @@ func TestServer_DisableUser_OK(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, user)
 	assert.False(t, user.Disabled)
-	disableUser(t, err, user, loginRes)
+	disableUser(t, user, loginRes)
 	//Get User details
 	user, err = userQuery.GetEntireUserByEmail(context.Background(), "first.last@example.com")
 	assert.NoError(t, err)
@@ -1177,13 +1185,13 @@ func TestServer_EnableUser_OK(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, user)
 	assert.False(t, user.Disabled)
-	disableUser(t, err, user, loginRes)
+	disableUser(t, user, loginRes)
 	//Get User details
 	user, err = userQuery.GetEntireUserByEmail(context.Background(), "first.last@example.com")
 	assert.NoError(t, err)
 	assert.NotEmpty(t, user)
 	assert.True(t, user.Disabled)
-	enableUser(t, err, user, loginRes)
+	enableUser(t, user, loginRes)
 	//Get User details
 	user, err = userQuery.GetEntireUserByEmail(context.Background(), "first.last@example.com")
 	assert.NoError(t, err)
@@ -1368,6 +1376,7 @@ func loginWithTempToken2FACode(t *testing.T, generateCode string, res api.LoginR
 	login2faBytes, err := json.Marshal(api.Login2FARequest{
 		TwoFACode: generateCode,
 	})
+	assert.NoError(t, err)
 
 	req, err := http.NewRequest(http.MethodPost, "/api/v1/auth/2fa/login", bytes.NewReader(login2faBytes))
 	assert.NotNil(t, req)
@@ -1630,7 +1639,7 @@ func removeRolesFromUser(t *testing.T, role api.RoleResponse, loginRes api.Login
 	assert.NotEqualValues(t, user.PermissionNames, updatedUser.PermissionNames)
 }
 
-func lockUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
+func lockUser(t *testing.T, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
 	//Lock endpoint
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%d/lock", user.UserID), nil)
 	assert.NoError(t, err)
@@ -1644,7 +1653,7 @@ func lockUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, login
 	assert.Empty(t, recorder.Body.String())
 }
 
-func unlockUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
+func unlockUser(t *testing.T, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
 	//Lock endpoint
 	req, err := http.NewRequest(http.MethodDelete, fmt.Sprintf("/api/v1/users/%d/lock", user.UserID), nil)
 	assert.NoError(t, err)
@@ -1658,7 +1667,7 @@ func unlockUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, log
 	assert.Empty(t, recorder.Body.String())
 }
 
-func disableUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
+func disableUser(t *testing.T, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
 	//Disable endpoint
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%d/disable", user.UserID), nil)
 	assert.NoError(t, err)
@@ -1672,7 +1681,7 @@ func disableUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, lo
 	assert.Empty(t, recorder.Body.String())
 }
 
-func enableUser(t *testing.T, err error, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
+func enableUser(t *testing.T, user users.GetEntireUserByEmailRow, loginRes api.LoginSuccessWithJWT) {
 	//Enable endpoint
 	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/users/%d/enable", user.UserID), nil)
 	assert.NoError(t, err)

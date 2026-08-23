@@ -71,6 +71,7 @@ func main() {
 	authMiddleware := middleware.JWTAuthMiddleware(jwt_secret.GetOrCreateSecret(cfg.Token, jwtSecretStorage), cfg.Auth.SkipPaths, cfg.Token.Issuer)
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
+	router.ContextWithFallback = true
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	router.Use(middleware.MetricHandler(),
 		middleware.RequestValidator(swagger),

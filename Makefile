@@ -1,4 +1,4 @@
-.PHONY: clean clean-frontend generate generate-frontend build build-backend build-frontend build-embedded dev-backend dev-frontend test-backend test-frontend
+.PHONY: clean clean-frontend generate generate-frontend build build-backend build-frontend build-embedded dev-backend dev-frontend test-backend test-frontend lint-backend
 
 # Backend
 clean:
@@ -13,7 +13,10 @@ generate: clean
 build-backend:
 	cd apps/server && go build -o ../../bin/server ./cmd/server
 
-test-backend:
+lint-backend:
+	cd apps/server && GOFLAGS= go tool golangci-lint run ./...
+
+test-backend: lint-backend
 	cd apps/server && go test -p 1 ./...
 
 test-backend-coverage:

@@ -34,6 +34,9 @@ jobs:
         run: go build ./...
         working-directory: apps/server
 
+      - name: Lint
+        run: make lint-backend
+
       - name: Test
         run: |
           go test -p 1 ./... -coverprofile=coverage.raw
@@ -71,15 +74,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          echo "Deleting previous workflow runs..."
-          gh run list \
-            --workflow "Go JWT Server CI" \
-            --limit 100 \
-            --json databaseId,createdAt \
-            -q 'sort_by(.createdAt) | reverse | .[2:] | .[].databaseId' |
-          while read -r run_id; do
-            echo "Deleting run $run_id"
-            gh run delete "$run_id" --repo "${{ github.repository }}" || echo "Skipped $run_id"
+          echo "Deleting previous workflow runs for all workflows..."
+          gh api --paginate "repos/${{ github.repository }}/actions/workflows" -q '.workflows[].name' | while read -r wf; do
+            echo "Processing workflow: $wf"
+            gh run list \
+              --workflow "$wf" \
+              --limit 100 \
+              --json databaseId,createdAt \
+              -q 'sort_by(.createdAt) | reverse | .[2:] | .[].databaseId' |
+            while read -r run_id; do
+              echo "Deleting run $run_id from $wf"
+              gh run delete "$run_id" --repo "${{ github.repository }}" || echo "Skipped $run_id"
+            done
           done
 
   docker-build-test:
