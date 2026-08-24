@@ -109,7 +109,14 @@ func JWTAuthMiddleware(secret []byte, skipPaths []string, issuer string) gin.Han
 			return
 		}
 		if endpointAuthPolicy, endpointAuthPolicyExists := c.Get(aegisAuth); endpointAuthPolicyExists {
-			if !endpointAuthPolicy.(*authPolicy).evalAnyOf(claims.Roles, claims.Permissions, false) {
+			policy := endpointAuthPolicy.(*authPolicy)
+			isSelf := false
+			if policy.Self {
+				if idParam := c.Param("id"); idParam != "" {
+					isSelf = idParam == claims.Subject
+				}
+			}
+			if !policy.evalAnyOf(claims.Roles, claims.Permissions, isSelf) {
 				authFailures.WithLabelValues("RolesAndPermissionsMissing").Inc()
 				c.AbortWithStatusJSON(http.StatusUnauthorized, httperror.HttpError{
 					Description: jwt.ErrTokenRequiredClaimMissing.Error(),
