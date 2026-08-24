@@ -23,6 +23,9 @@ import (
 func TestService_Signup_No2FA_OK(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
 	user := api.UserSignup{
 		Email:     "first.last@example.com",
 		FirstName: "First name",
@@ -44,6 +47,9 @@ func TestService_Signup_No2FA_OK(t *testing.T) {
 func TestService_Signup_No2FA_NOK_UserAlreadyExists(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
 	user := api.UserSignup{
 		Email:     "first.last@example.com",
 		FirstName: "First name",
@@ -69,6 +75,9 @@ func TestService_Signup_No2FA_NOK_UserAlreadyExists(t *testing.T) {
 func TestService_Signup_No2FA_NOK_DBError(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
 	user := api.UserSignup{
 		Email:     "first.last@example.com",
 		FirstName: "First name",
@@ -93,6 +102,9 @@ func TestService_Signup_No2FA_NOK_DBError(t *testing.T) {
 func TestService_Signup_2FA_OK(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
 	user := api.UserSignup{
 		Email:        "first.last@example.com",
 		FirstName:    "First name",
@@ -123,6 +135,9 @@ func TestService_Signup_2FA_OK(t *testing.T) {
 func TestService_Signup_2FA_NOK_UserAlreadyExists(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
 	user := api.UserSignup{
 		Email:        "first.last@example.com",
 		FirstName:    "First name",
@@ -154,6 +169,9 @@ func TestService_Signup_2FA_NOK_UserAlreadyExists(t *testing.T) {
 func TestService_Signup_2FA_NOK_DBError(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
 	user := api.UserSignup{
 		Email:        "first.last@example.com",
 		FirstName:    "First name",
@@ -227,6 +245,9 @@ func TestService_Login_OK(t *testing.T) {
 func TestService_Login_NOK_WrongPassword(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
 	email := "first.last@example.com"
 	userLogin := api.UserLogin{
 		Email:    openapi_types.Email(email),
@@ -258,6 +279,9 @@ func TestService_Login_NOK_WrongPassword(t *testing.T) {
 func TestService_Login_NOK_DB(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
 	email := "first.last@example.com"
 	userLogin := api.UserLogin{
 		Email:    openapi_types.Email(email),
@@ -283,6 +307,9 @@ func TestService_Login_NOK_DB(t *testing.T) {
 func TestService_Login_NOK(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
 	email := "first.last@example.com"
 	userLogin := api.UserLogin{
 		Email:    openapi_types.Email(email),

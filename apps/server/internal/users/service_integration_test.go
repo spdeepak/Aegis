@@ -238,6 +238,9 @@ func loginOk(t *testing.T) {
 func loginNokWrongPassword(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
 	email := "first.last@example.com"
 	userLogin := api.UserLogin{
 		Email:    openapi_types.Email(email),
@@ -263,6 +266,9 @@ func loginNokWrongPassword(t *testing.T) {
 func loginNOK(t *testing.T) {
 	w := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(w)
+	req := httptest.NewRequest("GET", "/", nil)
+	req.Header.Set("X-Forwarded-For", "192.168.1.100")
+	ctx.Request = req
 	email := "first.last@example.com"
 	userLogin := api.UserLogin{
 		Email:    openapi_types.Email(email),
