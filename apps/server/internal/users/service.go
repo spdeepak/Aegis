@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -13,33 +14,43 @@ import (
 
 	"github.com/spdeepak/aegis/server/api"
 	"github.com/spdeepak/aegis/server/internal/error"
+	"github.com/spdeepak/aegis/server/internal/ratelimit"
 	"github.com/spdeepak/aegis/server/internal/tokens"
 	"github.com/spdeepak/aegis/server/internal/twoFA"
 )
 
-type (
-	service struct {
-		query        Querier
-		tokenService tokens.Service
-		twoFAService twoFA.Service
-	}
-	Service interface {
-		Signup(ctx *gin.Context, user api.UserSignup) (api.SignUpWith2FAResponse, error)
-		Login(ctx *gin.Context, params api.LoginParams, login api.UserLogin) (any, error)
-		Login2FA(ctx *gin.Context, params api.Login2FAParams, userId int64, passcode string) (api.LoginSuccessWithJWT, error)
-		ChangePassword(ctx *gin.Context, email string, userId int64, changePassword api.ChangePassword) (api.ChangePasswordResponseObject, error)
-		RefreshToken(ctx *gin.Context, params api.RefreshParams, refresh api.Refresh) (api.LoginSuccessWithJWT, error)
-		GetUserRolesAndPermissions(ctx *gin.Context, id api.Id, params api.GetRolesOfUserParams) (api.UserWithRoles, error)
-		AssignRolesToUser(ctx *gin.Context, userId api.Id, params api.AssignRolesToUserParams, assignRoleToUser api.AssignRoleToUser, email string) error
-		UnassignRolesOfUser(ctx *gin.Context, userId api.Id, roleId api.RoleId, params api.RemoveRolesForUserParams) error
-	}
-)
+	type (
+		service struct {
+			query        Querier
+			tokenService tokens.Service
+			twoFAService twoFA.Service
+			rateLimiter  ratelimit.Store
+		}
+		Service interface {
+			Signup(ctx *gin.Context, user api.UserSignup) (api.SignUpWith2FAResponse, error)
+			Login(ctx *gin.Context, params api.LoginParams, login api.UserLogin) (any, error)
+			Login2FA(ctx *gin.Context, params api.Login2FAParams, userId int64, passcode string) (api.LoginSuccessWithJWT, error)
+			ChangePassword(ctx *gin.Context, email string, userId int64, changePassword api.ChangePassword) (api.ChangePasswordResponseObject, error)
+			RefreshToken(ctx *gin.Context, params api.RefreshParams, refresh api.Refresh) (api.LoginSuccessWithJWT, error)
+			GetUserRolesAndPermissions(ctx *gin.Context, id api.Id, params api.GetRolesOfUserParams) (api.UserWithRoles, error)
+			AssignRolesToUser(ctx *gin.Context, userId api.Id, params api.AssignRolesToUserParams, assignRoleToUser api.AssignRoleToUser, email string) error
+			UnassignRolesOfUser(ctx *gin.Context, userId api.Id, roleId api.RoleId, params api.RemoveRolesForUserParams) error
+		}
+	)
 
-func NewService(query Querier, twoFAService twoFA.Service, tokenService tokens.Service) Service {
+// NewService builds the users service. The rate-limiter store is optional; when
+// omitted (or nil) a no-op store is used, so account-aware login throttling is
+// disabled. Callers that want throttling pass a configured ratelimit.Store.
+func NewService(query Querier, twoFAService twoFA.Service, tokenService tokens.Service, rateLimiter ...ratelimit.Store) Service {
+	rl := ratelimit.Store(&ratelimit.NoopStore{})
+	if len(rateLimiter) > 0 && rateLimiter[0] != nil {
+		rl = rateLimiter[0]
+	}
 	return &service{
 		query:        query,
 		twoFAService: twoFAService,
 		tokenService: tokenService,
+		rateLimiter:  rl,
 	}
 }
 
@@ -133,7 +144,15 @@ func (s *service) ChangePassword(ctx *gin.Context, email string, userId int64, c
 }
 
 func (s *service) Login(ctx *gin.Context, params api.LoginParams, login api.UserLogin) (any, error) {
-	user, err := s.query.GetEntireUserByEmail(ctx, string(login.Email))
+	email := string(login.Email)
+	if s.rateLimiter != nil {
+		acctKey := ratelimit.NormalizeIP(ctx.ClientIP()) + ":" + strings.ToLower(email)
+		if locked, _ := s.rateLimiter.IsLocked(ctx, acctKey); locked {
+			return api.LoginSuccessWithJWT{}, httperror.New(httperror.TooManyRequests)
+		}
+	}
+
+	user, err := s.query.GetEntireUserByEmail(ctx, email)
 	if err != nil {
 		if err.Error() == "no rows in result set" {
 			return api.LoginSuccessWithJWT{}, httperror.New(httperror.InvalidCredentials)
@@ -142,8 +161,10 @@ func (s *service) Login(ctx *gin.Context, params api.LoginParams, login api.User
 	}
 
 	if !validPassword(login.Password, user.Password) {
+		s.recordAccountFailure(ctx, email)
 		return api.LoginSuccessWithJWT{}, httperror.New(httperror.InvalidCredentials)
 	}
+	s.resetAccount(ctx, email)
 	if user.TwoFaEnabled {
 		return s.tokenService.GenerateTempToken(ctx, user.UserID)
 	}
@@ -161,6 +182,26 @@ func (s *service) Login(ctx *gin.Context, params api.LoginParams, login api.User
 		UserAgent:    params.UserAgent,
 	}
 	return s.tokenService.GenerateNewTokenPair(ctx, ctx.ClientIP(), tokenParams, jwtUser, user.RoleNames, user.PermissionNames)
+}
+
+func (s *service) accountKey(ctx *gin.Context, email string) string {
+	return ratelimit.NormalizeIP(ctx.ClientIP()) + ":" + strings.ToLower(email)
+}
+
+func (s *service) recordAccountFailure(ctx *gin.Context, email string) {
+	if s.rateLimiter == nil {
+		return
+	}
+	if locked, _ := s.rateLimiter.RecordFailure(ctx, s.accountKey(ctx, email)); locked {
+		ratelimit.AuthLockoutsAccount.Inc()
+	}
+}
+
+func (s *service) resetAccount(ctx *gin.Context, email string) {
+	if s.rateLimiter == nil {
+		return
+	}
+	_ = s.rateLimiter.Reset(ctx, s.accountKey(ctx, email))
 }
 
 func (s *service) Login2FA(ctx *gin.Context, params api.Login2FAParams, userId int64, passcode string) (api.LoginSuccessWithJWT, error) {

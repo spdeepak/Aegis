@@ -120,3 +120,26 @@ sql:
             go_type:
               import: "time"
               type: "Time"
+  - schema:
+      - "./migrations/*.up.sql"
+    queries: "./sqls/ratelimit.sql"
+    engine: "postgresql"
+    gen:
+      go:
+        package: "ratelimit"
+        out: "./internal/ratelimit"
+        output_files_suffix: ".gen.go"
+        output_db_file_name: "db.gen.go"
+        output_models_file_name: "models.gen.go"
+        output_querier_file_name: "querier.gen.go"
+        emit_interface: true
+        emit_json_tags: true
+        sql_package: "pgx/v5"
+        overrides:
+          - db_type: "timestamptz"
+            go_type:
+              import: "time"
+              type: "Time"
+          - db_type: "interval"
+            go_type:
+              type: "time.Duration"

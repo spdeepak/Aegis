@@ -29,3 +29,6 @@ packages:
   github.com/spdeepak/aegis/server/internal/twoFA:
     interfaces:
       Querier:
+  github.com/spdeepak/aegis/server/internal/ratelimit:
+    interfaces:
+      Querier:

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -19,6 +20,7 @@ import (
 	"github.com/spdeepak/aegis/server/internal/jwt_secret"
 	"github.com/spdeepak/aegis/server/internal/middleware"
 	"github.com/spdeepak/aegis/server/internal/permissions"
+	"github.com/spdeepak/aegis/server/internal/ratelimit"
 	"github.com/spdeepak/aegis/server/internal/roles"
 	"github.com/spdeepak/aegis/server/internal/tokens"
 	"github.com/spdeepak/aegis/server/internal/twoFA"
@@ -45,9 +47,22 @@ func main() {
 	//2FA
 	twoFAQuery := twoFA.New(dbConnection)
 	twoFAService := twoFA.NewService(cfg.TwoFA.AppName, twoFAQuery)
+	// Rate-limit store (centralized brute-force state: Postgres or Redis)
+	store, err := ratelimit.NewStore(cfg.Auth.RateLimit, dbConnection)
+	if err != nil {
+		slog.Error("failed to build rate-limit store", "error", err)
+		os.Exit(1)
+	}
+	// Account-aware login throttling is opt-in; when disabled the service gets a
+	// no-op store so the (IP-based) middleware limiter keeps working.
+	accountStore := ratelimit.Store(store)
+	if !cfg.Auth.RateLimit.AccountAware {
+		accountStore = &ratelimit.NoopStore{}
+	}
+
 	//Users
 	userRepository := users.New(dbConnection)
-	userService := users.NewService(userRepository, twoFAService, tokenService)
+	userService := users.NewService(userRepository, twoFAService, tokenService, accountStore)
 	//Roles
 	roleQuery := roles.New(dbConnection)
 	roleService := roles.NewService(roleQuery)
@@ -69,11 +84,25 @@ func main() {
 	swagger.Servers = nil
 
 	authMiddleware := middleware.JWTAuthMiddleware(jwt_secret.GetOrCreateSecret(cfg.Token, jwtSecretStorage), cfg.Auth.SkipPaths, cfg.Token.Issuer)
+	rateLimiter := middleware.NewRateLimiter(cfg.Auth.RateLimit, store)
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()
 	router.ContextWithFallback = true
+
+	// Trusted proxies: only these CIDRs may assert the real client IP via
+	// X-Forwarded-For. Empty => gin uses RemoteAddr (ignores XFF, safe against
+	// spoofing). Operators behind a CDN/ingress must set the proxy CIDRs.
+	if cidrs, err := parseTrustedProxies(cfg.Auth.RateLimit.TrustedProxies); err != nil {
+		slog.Error("invalid trustedProxies configuration", "error", err)
+		os.Exit(1)
+	} else if err := router.SetTrustedProxies(cidrs); err != nil {
+		slog.Error("failed to set trusted proxies", "error", err)
+		os.Exit(1)
+	}
+
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	router.Use(middleware.MetricHandler(),
+		rateLimiter.Middleware(),
 		middleware.RequestValidator(swagger),
 		authMiddleware,
 		gin.Recovery(),
@@ -111,4 +140,17 @@ func main() {
 		}
 		slog.Info("Server exiting gracefully")
 	}
+}
+
+// parseTrustedProxies validates and returns the configured trusted-proxy CIDRs.
+// An empty list is valid and means gin will use RemoteAddr (ignore XFF).
+func parseTrustedProxies(proxies []string) ([]string, error) {
+	cidrs := make([]string, 0, len(proxies))
+	for _, p := range proxies {
+		if _, _, err := net.ParseCIDR(p); err != nil {
+			return nil, err
+		}
+		cidrs = append(cidrs, p)
+	}
+	return cidrs, nil
 }

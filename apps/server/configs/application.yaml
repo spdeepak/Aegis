@@ -22,3 +22,19 @@ auth:
   skipPaths:
 #    - /api/v1/access-control/roles
 #    - /api/v1/access-control/roles/{id}
+  rateLimit:
+    enabled: true
+    backend: postgres          # postgres (default) | redis | memory
+    maxAttempts: 5
+    window: 1m
+    lockoutDuration: 15m
+    # CIDRs of reverse proxies / CDNs (e.g. Cloudflare, k8s ingress) allowed to
+    # assert the real client IP via X-Forwarded-For. Empty => use RemoteAddr.
+    trustedProxies: []
+    # Throttle login attempts per (client IP + email) so an attacker cannot lock
+    # out a victim's account by bombing their email from the attacker's IP.
+    accountAware: true
+    redis:
+      addr: ""
+      password: ""
+      db: 0

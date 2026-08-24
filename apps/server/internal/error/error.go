@@ -47,6 +47,7 @@ const (
 	UserOperationFailed      = "JWT0027"
 	TwoFARequired            = "JWT0028"
 	SearchUsersFailed        = "JWT0029"
+	TooManyRequests          = "JWT0030"
 )
 
 var httpErrors = map[string]HttpError{
@@ -169,6 +170,10 @@ var httpErrors = map[string]HttpError{
 	SearchUsersFailed: {
 		StatusCode:  http.StatusInternalServerError,
 		Description: "Failed to get list of users",
+	},
+	TooManyRequests: {
+		StatusCode:  http.StatusTooManyRequests,
+		Description: "Too many failed attempts. Please try again later.",
 	},
 }
 

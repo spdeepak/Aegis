@@ -44,7 +44,23 @@ type (
 		HealthCheckPeriod time.Duration `required:"true" json:"healthCheckPeriod" yaml:"healthCheckPeriod" validate:"required,gt=0"`
 	}
 	Auth struct {
-		SkipPaths []string `json:"skipPaths" yaml:"skipPaths"`
+		SkipPaths []string        `json:"skipPaths" yaml:"skipPaths"`
+		RateLimit RateLimitConfig `json:"rateLimit" yaml:"rateLimit"`
+	}
+	RateLimitConfig struct {
+		Enabled         bool          `json:"enabled" yaml:"enabled"`
+		Backend         string        `json:"backend" yaml:"backend"`
+		MaxAttempts     int           `json:"maxAttempts" yaml:"maxAttempts"`
+		Window          time.Duration `json:"window" yaml:"window"`
+		LockoutDuration time.Duration `json:"lockoutDuration" yaml:"lockoutDuration"`
+		TrustedProxies  []string      `json:"trustedProxies" yaml:"trustedProxies"`
+		AccountAware    bool          `json:"accountAware" yaml:"accountAware"`
+		Redis           RedisConfig   `json:"redis" yaml:"redis"`
+	}
+	RedisConfig struct {
+		Addr     string `json:"addr" yaml:"addr"`
+		Password string `json:"password" yaml:"password"`
+		DB       int    `json:"db" yaml:"db"`
 	}
 	TwoFA struct {
 		AppName string `required:"true" json:"appName" yaml:"appName"`

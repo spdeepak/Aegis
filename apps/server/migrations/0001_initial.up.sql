@@ -207,3 +207,15 @@ INSERT INTO user_roles (user_id, role_id, created_by)
 SELECT u.id, r.id, 'system'
 FROM admin_user u
          CROSS JOIN admin_role r;
+
+-- Auth rate limits
+CREATE TABLE IF NOT EXISTS auth_rate_limits
+(
+    key          TEXT        NOT NULL PRIMARY KEY,
+    failures     INT         NOT NULL DEFAULT 0,
+    window_start TIMESTAMPTZ NOT NULL DEFAULT now(),
+    locked_until TIMESTAMPTZ,
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+CREATE INDEX IF NOT EXISTS idx_auth_rate_limits_locked_until ON auth_rate_limits (locked_until);
